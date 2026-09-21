@@ -29,3 +29,11 @@
 - **Node.js**: Requires Node.js 24.x (v24.18.1 installed) and pnpm 10+.
 - **Windows File Locks**: `bundle-require` unlinking `.mjs` temp files can hit `EBUSY` on Windows due to module loader locks. Handled via error catching.
 - **Native Addons**: `ssh2` and `cpu-features` have pure JS fallbacks if Visual C++ build tools are not installed.
+
+## 6. Recent Enhancements & Documentation
+- **RTK Built-in**: Integrated transparent Bash tool interceptor and AST rewriter (`rtk-rewriter.ts`).
+- **Local LLM Presets**: Added Ollama and LM Studio presets in `config/provider/zcode-builtin.json`.
+- **Interactive Wizard**: `fdcode init` and `fdcode config` in `apps/zcode-cli/packages/cli/src/init-command.ts`.
+- **Context Filtering**: `.fdcodeignore` with automatic `.zcodeignore` fallback in `workspaceFileIgnore.ts`.
+- **Documentation**: New Thai `README.md` and English `README.en.md` with complete architecture maps, quickstart commands, and badge metadata.
+
