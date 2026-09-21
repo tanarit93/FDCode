@@ -54,6 +54,7 @@ import {
 import { createBashProviderDescription } from "./bash-prompt.js";
 import { applyBashReadFileStateEffects } from "./bash-read-file-state.js";
 import { isRuntimeReadOnlyBashCommand } from "./bash-semantics.js";
+import { rewriteBashCommandWithRtk } from "./rtk-rewriter.js";
 import {
   attachToolExecutionTelemetry,
   classifyCommand,
@@ -129,7 +130,13 @@ async function executeBashHandler(
     return emptyBashOutput(parsed);
   }
 
-  const request = createExecutionRequest(parsed, context, timeoutPolicy);
+  const effectiveCommand = await rewriteBashCommandWithRtk(parsed.command);
+  const effectiveParsed: BashInput =
+    effectiveCommand !== parsed.command
+      ? { ...parsed, command: effectiveCommand }
+      : parsed;
+
+  const request = createExecutionRequest(effectiveParsed, context, timeoutPolicy);
   const progressTiming: BashProgressTiming = {};
   const commandTelemetry = startBashCommandTelemetry(parsed, context);
   const runOptions = createExecutionRunOptions(context, progressTiming, commandTelemetry);

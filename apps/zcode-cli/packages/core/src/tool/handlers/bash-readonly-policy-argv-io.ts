@@ -94,6 +94,27 @@ export function stripSafeCommandWrappers(argv: readonly string[]): readonly stri
       stripped = stripped.slice(1);
       continue;
     }
+    if (stripped[0] === "rtk") {
+      if (stripped[1] === "proxy") {
+        if (stripped.length <= 2) return stripped;
+        stripped = stripped.slice(2);
+        continue;
+      }
+      // Keep RTK-native inspection subcommands and flags for direct readonly policy evaluation
+      const subcommand = stripped[1];
+      if (
+        !subcommand ||
+        subcommand.startsWith("-") ||
+        subcommand === "gain" ||
+        subcommand === "discover" ||
+        subcommand === "cc-economics" ||
+        subcommand === "session"
+      ) {
+        return stripped;
+      }
+      stripped = stripped.slice(1);
+      continue;
+    }
     return stripped;
   }
 }

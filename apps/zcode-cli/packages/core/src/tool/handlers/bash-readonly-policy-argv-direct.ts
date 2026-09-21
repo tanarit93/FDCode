@@ -78,7 +78,27 @@ export function evaluateDirectReadonlyArgv(argv: readonly string[]): boolean | u
     return argv.length === 1 || (argv.length === 2 && (argv[1] === "-h" || argv[1] === "--help"));
   if (argv[0] === "ifconfig")
     return argv.length === 1 || (argv.length === 2 && /^[a-zA-Z]/.test(argv[1] ?? ""));
+  if (argv[0] === "rtk" && isSafeRtkArgv(argv)) return true;
   return undefined;
+}
+
+const RTK_SAFE_SUBCOMMANDS = new Set([
+  "gain",
+  "discover",
+  "cc-economics",
+  "session",
+]);
+
+function isSafeRtkArgv(argv: readonly string[]): boolean {
+  if (argv.length < 2) return true;
+  const subcommand = argv[1];
+  if (!subcommand) return true;
+  if (subcommand === "-v" || subcommand === "-V" || subcommand === "--version") return true;
+  if (subcommand === "-h" || subcommand === "--help") return true;
+  if (RTK_SAFE_SUBCOMMANDS.has(subcommand)) {
+    return !argv.some((arg) => arg.includes(";") || arg.includes("|") || arg.includes("&"));
+  }
+  return false;
 }
 
 const READONLY_EXACT_ARGV_COMMANDS = [
