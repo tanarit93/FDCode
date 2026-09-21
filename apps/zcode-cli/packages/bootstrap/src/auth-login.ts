@@ -347,7 +347,7 @@ async function persistStandaloneCodingPlanConnection(input: {
   // 登录与运行时共享文件和事务；首次写入仍先保留旧用户 Provider，不能仅写默认值。
   const personalRepository = new NodePersonalProviderConfigRepository({
     filePath: path,
-    importLegacy: () => readLegacyCliPersonalProviderConfig({}),
+    importLegacy: () => readLegacyCliPersonalProviderConfig({ env: input.env }),
     pollingIntervalMs: false,
   });
   const repository = new NodeModelSelectionConfigRepository({ personalRepository });

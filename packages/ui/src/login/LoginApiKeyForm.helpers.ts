@@ -7,29 +7,32 @@ import {
 import type { ModelSelectionView } from "@zcode/services";
 import { encodeCustomModelValue } from "@/lib/zcodeCustomModelValue.js";
 
-export type ApiKeyProviderChoice = "zai" | "bigmodel";
+export type ApiKeyProviderChoice = "openai-compatible" | "zai" | "bigmodel";
 
-export function resolveLoginApiKeyDefaultProvider(locale: Locale): ApiKeyProviderChoice {
-  return locale === "zh-CN" ? "bigmodel" : "zai";
+export function resolveLoginApiKeyDefaultProvider(_locale: Locale): ApiKeyProviderChoice {
+  return "openai-compatible";
 }
 
 export function resolveLoginApiKeyTemplateId(
   choice: ApiKeyProviderChoice,
-): "zai-api" | "bigmodel-api" {
+): string {
+  if (choice === "openai-compatible") {
+    return BUILTIN_PROVIDER_TEMPLATE_IDS.openaiCompatible;
+  }
   return choice === "zai"
     ? BUILTIN_PROVIDER_TEMPLATE_IDS.zai
     : BUILTIN_PROVIDER_TEMPLATE_IDS.bigmodel;
 }
 
 export function resolveLoginApiKeyProviderLabel(choice: ApiKeyProviderChoice): string {
-  // Welcome Screen API Key 错误提示需要使用 BigModel 品牌固定写法。
+  if (choice === "openai-compatible") return "OpenAI Compatible (BYOK)";
   return choice === "zai" ? "Z.ai" : "BigModel";
 }
 
 function resolveLoginApiKeyProviderFamilyDomain(
   choice: ApiKeyProviderChoice,
 ): ProviderFamilyDomain {
-  return choice;
+  return choice === "openai-compatible" ? "zai" : choice;
 }
 
 export function buildLoginApiKeySkipSettings(

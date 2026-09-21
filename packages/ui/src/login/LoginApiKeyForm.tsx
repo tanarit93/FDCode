@@ -55,6 +55,8 @@ export function LoginApiKeyForm({ onCancel, onSaved, onSkipped }: LoginApiKeyFor
     resolveLoginApiKeyDefaultProvider(locale),
   );
   const [apiKeyValue, setApiKeyValue] = useState("");
+  const [baseUrlValue, setBaseUrlValue] = useState("https://api.openai.com/v1");
+  const [modelValue, setModelValue] = useState("gpt-4o");
   const [saving, setSaving] = useState(false);
   const [skipping, setSkipping] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +75,7 @@ export function LoginApiKeyForm({ onCancel, onSaved, onSkipped }: LoginApiKeyFor
 
   const saveApiKeyProvider = async () => {
     const apiKey = apiKeyValue.trim();
-    if (!apiKey) {
+    if (!apiKey && providerChoice !== "openai-compatible") {
       setError(intl.formatMessage({ id: "login.apiKey.emptyError" }));
       return;
     }
@@ -94,9 +96,24 @@ export function LoginApiKeyForm({ onCancel, onSaved, onSkipped }: LoginApiKeyFor
         return;
       }
 
+      const initialConfig: Record<string, unknown> = {
+        access: { type: template.config.access.type, apiKey: apiKey || undefined },
+      };
+      if (providerChoice === "openai-compatible") {
+        const baseUrl = baseUrlValue.trim() || "https://api.openai.com/v1";
+        const model = modelValue.trim() || "gpt-4o";
+        initialConfig.api = {
+          type: "openai-chat-completions",
+          baseUrl,
+        };
+        initialConfig.personalModelIds = [model];
+        initialConfig.modelOrder = [model];
+      }
+
       const created = await providerSettingsService.createPersonalProvider({
         templateId,
-        initialConfig: { access: { type: template.config.access.type, apiKey } },
+        providerName: providerChoice === "openai-compatible" ? "OpenAI Compatible" : undefined,
+        initialConfig,
       });
       const defaultModelPreference = buildLoginApiKeyDefaultModelPreferenceFromSelection(
         await modelSelectionService.getView(),
@@ -176,6 +193,13 @@ export function LoginApiKeyForm({ onCancel, onSaved, onSkipped }: LoginApiKeyFor
               </SelectTrigger>
               <SelectContent align="end" className="rounded-lg">
                 <SelectItem
+                  value="openai-compatible"
+                  className="rounded-md"
+                  data-testid={testId(TID_LOGIN_API_KEY_PROVIDER_ITEM, "openai-compatible")}
+                >
+                  <span className="font-medium">OpenAI Compatible (BYOK)</span>
+                </SelectItem>
+                <SelectItem
                   value="zai"
                   className="rounded-md"
                   data-testid={testId(TID_LOGIN_API_KEY_PROVIDER_ITEM, "zai")}
@@ -196,46 +220,96 @@ export function LoginApiKeyForm({ onCancel, onSaved, onSkipped }: LoginApiKeyFor
               </SelectContent>
             </Select>
           </div>
-          <div className="relative">
-            <Input
-              id="login-api-key"
-              type="password"
-              size="lg"
-              className={`h-10 w-full text-ui-base ${showApiKeyLink ? "pr-28" : ""}`}
-              data-testid={TID_LOGIN_API_KEY_INPUT}
-              aria-label={intl.formatMessage({
-                id: "login.apiKey.placeholder",
-              })}
-              value={apiKeyValue}
-              placeholder={intl.formatMessage({
-                id: "login.apiKey.placeholder",
-              })}
-              autoComplete="off"
-              onChange={(event) => {
-                setApiKeyValue(event.target.value);
-                setError(null);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && apiKeyValue.trim() && !busy) {
-                  void saveApiKeyProvider();
-                }
-              }}
-            />
-            {showApiKeyLink ? (
-              <button
-                type="button"
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ui-base font-medium text-brand underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+
+          {providerChoice === "openai-compatible" && (
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-foreground-subtle" htmlFor="login-base-url">
+                Base URL
+              </label>
+              <Input
+                id="login-base-url"
+                type="text"
+                size="lg"
+                className="h-10 w-full text-ui-base"
+                value={baseUrlValue}
+                placeholder="https://api.openai.com/v1"
+                autoComplete="off"
                 disabled={busy}
-                onClick={() => {
-                  if (apiKeyUrl) {
-                    platform.openExternal(apiKeyUrl);
+                onChange={(event) => setBaseUrlValue(event.target.value)}
+              />
+            </div>
+          )}
+
+          <div className="space-y-1">
+            {providerChoice === "openai-compatible" && (
+              <label className="text-xs font-medium text-foreground-subtle" htmlFor="login-api-key">
+                API Key
+              </label>
+            )}
+            <div className="relative">
+              <Input
+                id="login-api-key"
+                type="password"
+                size="lg"
+                className={`h-10 w-full text-ui-base ${showApiKeyLink ? "pr-28" : ""}`}
+                data-testid={TID_LOGIN_API_KEY_INPUT}
+                aria-label={intl.formatMessage({
+                  id: "login.apiKey.placeholder",
+                })}
+                value={apiKeyValue}
+                placeholder={
+                  providerChoice === "openai-compatible"
+                    ? "sk-... (or leave empty for local LLM)"
+                    : intl.formatMessage({
+                        id: "login.apiKey.placeholder",
+                      })
+                }
+                autoComplete="off"
+                onChange={(event) => {
+                  setApiKeyValue(event.target.value);
+                  setError(null);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !busy) {
+                    void saveApiKeyProvider();
                   }
                 }}
-              >
-                {intl.formatMessage({ id: "login.apiKey.getApiKey" })}
-              </button>
-            ) : null}
+              />
+              {showApiKeyLink ? (
+                <button
+                  type="button"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ui-base font-medium text-brand underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+                  disabled={busy}
+                  onClick={() => {
+                    if (apiKeyUrl) {
+                      platform.openExternal(apiKeyUrl);
+                    }
+                  }}
+                >
+                  {intl.formatMessage({ id: "login.apiKey.getApiKey" })}
+                </button>
+              ) : null}
+            </div>
           </div>
+
+          {providerChoice === "openai-compatible" && (
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-foreground-subtle" htmlFor="login-model-name">
+                Default Model
+              </label>
+              <Input
+                id="login-model-name"
+                type="text"
+                size="lg"
+                className="h-10 w-full text-ui-base"
+                value={modelValue}
+                placeholder="gpt-4o"
+                autoComplete="off"
+                disabled={busy}
+                onChange={(event) => setModelValue(event.target.value)}
+              />
+            </div>
+          )}
         </div>
       </div>
 

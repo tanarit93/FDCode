@@ -115,6 +115,7 @@ export async function startProcessProviderRegistryRuntime(
       ? {
           importLegacy: () =>
             readLegacyCliPersonalProviderConfig({
+              env,
               ...(options.standalone?.legacyCliUserConfigFilePath
                 ? { filePath: options.standalone.legacyCliUserConfigFilePath }
                 : {}),

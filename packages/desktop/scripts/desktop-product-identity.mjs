@@ -7,19 +7,19 @@ export const ZCODE_PREVIEW_IDENTITY_ENV = "ZCODE_PREVIEW_IDENTITY";
 
 const PRODUCTION_IDENTITY = Object.freeze({
   flavor: "production",
-  appId: "dev.zcode.app",
-  productName: "ZCode",
-  linuxExecutableName: "zcode",
-  linuxPackageName: "zcode",
+  appId: "dev.fdcode.app",
+  productName: "FDCode",
+  linuxExecutableName: "fdcode",
+  linuxPackageName: "fdcode",
   cuaHelperInstallVariant: null,
 });
 
 const PREVIEW_IDENTITY = Object.freeze({
   flavor: "preview",
-  appId: "dev.zcode.app.preview",
-  productName: "ZCode Preview",
-  linuxExecutableName: "zcode-preview",
-  linuxPackageName: "zcode-preview",
+  appId: "dev.fdcode.app.preview",
+  productName: "FDCode Preview",
+  linuxExecutableName: "fdcode-preview",
+  linuxPackageName: "fdcode-preview",
   cuaHelperInstallVariant: "preview",
 });
 
