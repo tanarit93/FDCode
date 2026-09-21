@@ -1,213 +1,164 @@
-# ZCode
+# FDCode
 
 <div align="center">
-  <img src="public/logo/icons/1024x1024.png" alt="ZCode" width="128" height="128" />
+  <img src="public/logo/icons/128x128.png" alt="FDCode Logo" width="96" height="96" />
+  <h3>Local-First, Privacy-Centric AI Coding Workspace with Built-in RTK</h3>
+  <p>
+    <a href="README.md">ภาษาไทย</a> | English
+  </p>
+  <p>
+    <img src="https://img.shields.io/badge/License-Apache--2.0-blue.svg" alt="License" />
+    <img src="https://img.shields.io/badge/Node.js-24.x-brightgreen.svg" alt="Node.js" />
+    <img src="https://img.shields.io/badge/pnpm-10.x-orange.svg" alt="pnpm" />
+    <img src="https://img.shields.io/badge/RTK-Inside-purple.svg" alt="RTK Inside" />
+    <img src="https://img.shields.io/badge/Local--First-Ollama%20%7C%20LM%20Studio-success.svg" alt="Local First" />
+  </p>
 </div>
-<p align="center">
-  <a href="https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=47ag983c-8fcb-4d6d-814b-5395193a712c&amp;qr_code=true">Feishu community</a> ·
-  <a href="https://discord.gg/z9aBcQXZQ3">Discord</a>
-</p>
-<p align="center">
-  <a href="README.md">简体中文</a> | English
-</p>
 
-ZCode is an AI coding workspace with desktop, browser, and terminal interfaces. This repository contains the clients, backend services, shared UI, and Agent CLI and runtime source code.
+---
 
-| Interface                    | Purpose                                                                                   | Development command            |
-| ---------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------ |
-| Desktop                      | Electron desktop application                                                              | `pnpm dev:desktop`             |
-| Web / ZCode CLI distribution | Terminal and browser workspace; packages the TUI, Web client, backend, and Agent together | `pnpm dev:web`                 |
-| Agent CLI                    | The `zcode` terminal interface, which also provides the Agent runtime for Desktop and Web | `pnpm --filter @zcode/cli dev` |
+**FDCode** is a local-first, privacy-centric AI coding workspace combining Electron Desktop, Web Client (Browser/Remote), and a full-screen Terminal TUI/CLI. Engineered for 100% data sovereignty (BYOK) with native **RTK (Rust Token Killer)** integration, reducing terminal output token consumption by 60–90%.
 
-## Setup
+```
+███████╗██████╗   ██████╗ ██████╗ ██████╗ ███████╗
+██╔════╝██╔══██╗ ██╔════╝██╔═══██╗██╔══██╗██╔════╝
+█████╗  ██║  ██║ ██║     ██║   ██║██║  ██║█████╗  
+██╔══╝  ██║  ██║ ██║     ██║   ██║██║  ██║██╔══╝  
+██║     ██████╔╝ ╚██████╗╚██████╔╝██████╔╝███████╗
+╚═╝     ╚═════╝   ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝
+```
 
-Install Git, Node.js **24.14.0**, and pnpm **10.33.2**. [mise.toml](mise.toml) is the source of truth for tool versions. Run all development and packaging commands below from the repository root.
+---
 
+## Key Highlights
+
+- **Local-First & 100% Privacy**: Out-of-the-box presets for Ollama (`localhost:11434`) and LM Studio (`localhost:1234`). Your source code stays on your machine.
+- **Built-in RTK (Rust Token Killer)**: Automatically intercepts terminal commands (`git status`, tests, linters) before transmitting to LLMs, slashing output tokens by 60–90% without manual typing.
+- **Strict Agent Mindset**: Enforces 4 foundational engineering rules (`NO MAGIC`, `DOUBLE-CHECK`, `MINIMAL CODE FIRST`, `ITERATIVE EXECUTION`) preventing speculative bugs, debris, and phantom code.
+- **Omni-Surface Interfaces**: Seamless workflow across Electron Desktop, Browser/Remote Web, and Terminal TUI (`fdcode`).
+- **Interactive Setup Wizard**: Run `fdcode init` or `fdcode config` to configure models, ping endpoints, and store keys locally (`.env`) or globally (`~/.fdcode/cli/config.json`) in seconds.
+
+---
+
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Execution Surfaces (3 Interfaces)](#execution-surfaces-3-interfaces)
+- [Model Configuration (Provider & BYOK)](#model-configuration-provider--byok)
+- [Context Filtering with .fdcodeignore](#context-filtering-with-fdcodeignore)
+- [Architecture Overview](#architecture-overview)
+- [Developer Commands](#developer-commands)
+- [License & Attributions](#license--attributions)
+
+---
+
+## Quick Start
+
+### Prerequisites
+- **Node.js**: `24.x` (see [mise.toml](mise.toml))
+- **pnpm**: `10.x`
+- **Git**
+
+### 1. Install Dependencies & Bootstrap
 ```bash
+pnpm install
 pnpm bootstrap
 ```
 
-`pnpm bootstrap` installs workspace dependencies, prepares local desktop runtime assets, and runs `build:bootstrap`.
-
-The Agent CLI and runtime source code lives in [apps/zcode-cli/](apps/zcode-cli/) as a regular directory included when you clone this repository. No separate checkout or Git submodule initialization is required.
-
-Additional setup and build commands:
-
-| Command                        | Purpose                                                                                                                             |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm install`                 | Install dependencies                                                                                                                |
-| `pnpm prepare:desktop-runtime` | Prepare desktop runtime assets, including remote assets by default                                                                  |
-| `pnpm prepare:remote-assets`   | Prepare remote runtime assets separately                                                                                            |
-| `pnpm bootstrap:with-remote`   | Set up dependencies and local and remote assets, then build the relevant packages sequentially; skip the desktop application bundle |
-| `pnpm build`                   | Recursively run each workspace package's build script, including its asset preparation steps                                        |
-
-The default `bootstrap` skips remote asset preparation and is suitable for local desktop development. Run the corresponding preparation command when working with remote workspaces or validating remote distribution assets.
-
-## Development and Usage
-
-### Desktop
-
+### 2. Run Interactive Setup Wizard
 ```bash
+# Configure Ollama, LM Studio, DeepSeek, OpenAI, or Custom endpoints
+node apps/zcode-cli/packages/cli/dist/zcode.cjs init
+```
+
+### 3. Launch FDCode
+```bash
+# Launch Terminal TUI
+node apps/zcode-cli/packages/cli/dist/zcode.cjs
+
+# Or launch Electron Desktop
 pnpm dev:desktop
-
-# Use the test environment
-pnpm dev:desktop:test
 ```
 
-`pnpm dev:desktop` defaults to `pnpm dev:desktop:prod` and uses production service configuration. The startup script prepares local runtime assets, builds the desktop Agent, then starts Electron and source watchers.
+> **Tip**: Run `npm link` in the root workspace to access `fdcode` globally from any folder.
 
-Set `ZCODE_DATA_BASE_DIR` to use a separate development data directory. For example, on macOS / Linux:
+---
+
+## Execution Surfaces (3 Interfaces)
+
+| Interface | Command | Description |
+| :--- | :--- | :--- |
+| **Terminal TUI / CLI** | `fdcode` or `pnpm --filter @zcode/cli dev` | Fast, lightweight full-screen TUI directly in your shell |
+| **Desktop App** | `pnpm dev:desktop` | Full Electron application with multi-tab workspace management |
+| **Web / Remote Client** | `pnpm dev:web` | Browser-based client (`http://localhost:5173`) for headless and remote VPS servers |
+
+---
+
+## Model Configuration (Provider & BYOK)
+
+FDCode supports local LLMs and remote APIs adhering to the OpenAI-Compatible format:
+
+### 1. Local LLMs (Recommended)
+- **Ollama**: Start your local model (e.g. `ollama run qwen2.5-coder:32b` or `deepseek-r1:14b`), then select Ollama in `fdcode init` (Base URL: `http://localhost:11434/v1`).
+- **LM Studio**: Load your model, start the local server, and select LM Studio in `fdcode init` (Base URL: `http://localhost:1234/v1`).
+
+### 2. Remote APIs (BYOK)
+Bring your own API key for DeepSeek, OpenAI, OpenRouter, or private gateways. Credentials are securely stored at:
+- **Project level**: `.env` in the current project root.
+- **Global level**: `~/.fdcode/cli/config.json` across all workspaces.
+
+---
+
+## Context Filtering with .fdcodeignore
+
+FDCode inspects `.fdcodeignore` to exclude files from agent context (e.g. test artifacts, build caches, scratch logs):
+- Standard `.gitignore` syntax.
+- **Zero-migration fallback**: Automatically falls back to `.zcodeignore` if present in legacy workspaces.
+
+---
+
+## Architecture Overview
+
+```text
+FDCode/
+├── apps/
+│   └── zcode-cli/         # Agent CLI, Terminal TUI, Runtime & RTK Rewriter
+├── packages/
+│   ├── desktop/           # Electron Main, Preload & Renderer
+│   ├── web/               # React 18 + Vite Web Client
+│   ├── server/            # HTTP & WebSocket Server (port 3030)
+│   ├── ui/                # Shared React UI Components & Zustand Store
+│   ├── services/          # File, Git, Session & Ignore Service
+│   ├── shared/            # Protocols, Types & Data Contracts
+│   ├── provider/          # LLM Provider Interfaces & Resolution
+│   └── provider-node/     # Node.js Provider Adapters
+└── config/
+    └── provider/          # Built-in Provider Templates (Ollama, LM Studio)
+```
+
+---
+
+## Developer Commands
 
 ```bash
-ZCODE_DATA_BASE_DIR="$HOME/.zcode-dev-home" pnpm dev:desktop:test
+# Typecheck across the monorepo
+pnpm typecheck
+
+# Code quality and linters
+pnpm lint
+
+# Architecture boundary enforcement
+pnpm architecture:check --changed
+
+# Complete pre-push validation
+pnpm verify:pre-push
+
+# Build CLI executable
+pnpm --filter @zcode/cli build
 ```
 
-### Web Development
+---
 
-Use development mode when editing Web or backend source code:
+## License & Attributions
 
-```bash
-pnpm dev:web
-
-# Set the backend workspace (macOS / Linux)
-ZCODE_SERVER_WORKSPACE=/path/to/project pnpm dev:web
-```
-
-This starts both the Web development server (default: `http://localhost:5173`) and the backend (default: `http://localhost:3030`). Open the Web development server in your browser. `/ws` and general `/api` requests are proxied to the local backend; `/api/v1/oauth/token` is proxied separately to the configured product service.
-
-After changing Agent source code, run `pnpm --filter @zcode/cli... build` and restart the service. To validate the complete distribution, extract and run it as described under Packaging → ZCode CLI distribution below.
-
-### ZCode CLI distribution
-
-The command-line distribution includes the TUI, Web client, and Agent behind one `zcode` command. With no arguments it starts the TUI; a leading `--web` starts Web mode; all other arguments go to the existing Agent CLI. Both modes run locally without Electron.
-
-```bash
-# Start the terminal UI by default
-zcode
-
-# Start the Web interface
-zcode --web
-
-# Set the project and port without opening a browser automatically
-zcode --web --workspace /path/to/project --port 3030 --no-open
-
-# Show CLI or Web options
-zcode --help
-zcode --web --help
-```
-
-In Web mode, it uses the current directory as the workspace, listens on `127.0.0.1` without token authentication by default, selects an available port, and opens a browser. Use the URL printed in the terminal and press `Ctrl+C` to stop the service. For LAN access, use `--host 0.0.0.0`; listening on a non-local address generates an access token by default. Use the token-bearing URL printed in the terminal. Set a token with `--token`, or disable token authentication with `--no-token`.
-
-When starting the general Web service's HTTP entry directly, configure API/WebSocket authentication with `ZCODE_SERVER_AUTH_TOKEN`. When creating the service programmatically, use the `authToken` option.
-
-See Packaging below for build instructions. `pnpm build:zcode` only creates the distribution; it does not replace an existing `zcode` on `PATH`. If the command still points to an older installation or another checkout, check it with `command -v zcode` on macOS / Linux or `where.exe zcode` on Windows.
-
-### CLI Source Development
-
-Use the source entry when developing the TUI or Agent:
-
-```bash
-pnpm --filter @zcode/cli dev --help
-pnpm --filter @zcode/cli dev
-
-# Build the CLI and its workspace dependencies
-pnpm --filter @zcode/cli... build
-node apps/zcode-cli/packages/cli/dist/zcode.cjs --help
-```
-
-This entry runs the Agent CLI directly and does not handle the distribution's `--web` switch. Use `pnpm dev:web` for Web development, or the extracted `bin/zcode.mjs` shown below to test the unified command.
-
-## Configuration
-
-The root [.env.example](.env.example) provides sample service URLs and build configuration. Copy it to `.env` as needed and place local overrides in `.env.local`. Select the Desktop development environment with `dev:desktop:test` or `dev:desktop:prod`.
-
-| Setting                              | Purpose                                                                                 |
-| ------------------------------------ | --------------------------------------------------------------------------------------- |
-| `ZCODE_DATA_BASE_DIR`                | Base directory for application data, stored under its `.zcode/` subdirectory            |
-| `ZCODE_SERVER_WORKSPACE`             | Workspace path for the Web backend                                                      |
-| `ZCODE_BUILTIN_PROVIDER_CONFIG_FILE` | Path to a local provider configuration file; uses the built-in configuration when unset |
-| `ZCODE_DIST_BASE_URL`                | Download base URL used by the CLI distribution installer                                |
-
-Runtime variables can be set explicitly in the environment of the startup command. See [config/README.md](config/README.md) for the default configuration shipped with the client.
-
-## Packaging
-
-See [third-party/README.md](third-party/README.md) for notice generation, distribution checks, and where the notices are included in each distribution.
-
-### Desktop
-
-```bash
-pnpm bundle:desktop
-
-# Set the target platform and CPU architecture
-pnpm bundle:desktop -- --os win --arch x64
-
-pnpm bundle:desktop -- --help
-```
-
-The default target is macOS arm64, and the default output directory is `packages/desktop/dist/`. `--os` accepts `mac`, `win`, or `linux`; `--arch` accepts `x64` or `arm64`. Packaging and signing require the tools and configuration for the target platform.
-
-### ZCode CLI distribution
-
-Run `pnpm build:zcode` to build the CLI/TUI, backend, and Web client, collect the TUI native libraries, workers, and runtime dependencies, then assemble the distribution. Running the distribution still requires Node.js; use the version specified in `mise.toml`.
-
-Before packaging, set the download base URL with `ZCODE_DIST_BASE_URL` in `.env`, `.env.local`, or the process environment, or pass it through `--base-url`. The URL below is a placeholder; replace it with your hosting URL when publishing:
-
-```bash
-pnpm build:zcode --base-url https://downloads.example.com/zcode/
-
-# When ZCODE_DIST_BASE_URL is already configured
-pnpm build:zcode
-
-# Repackage existing Agent, backend, and Web build outputs
-pnpm build:zcode --skip-build
-
-# Show options for the version, output directory, and more
-pnpm build:zcode --help
-```
-
-The version defaults to the root `package.json` version. Output is written to `dist/zcode/`:
-
-- `releases/<version>/zcode-<version>.tar.gz`: runtime package.
-- `releases/<version>/sha256.txt`: checksum file.
-- `latest.json` and `install.sh`: version index and installer.
-
-Upload the entire directory to the configured download base URL. The installer downloads the runtime package from that URL, installs it to `~/.zcode/runtime` by default, and creates the `zcode` command in `~/.local/bin`. Override these directories with `ZCODE_DIST_HOME` and `ZCODE_DIST_BIN_DIR`, respectively.
-
-Existing Lite users should switch to the new build command, environment variables, and installer. Installation does not remove old Lite directories or migrate/delete session data.
-
-To test a packaged build locally, extract and run it directly without uploading or installing it:
-
-```bash
-zcode_version=$(node -p "require('./dist/zcode/latest.json').version")
-mkdir -p dist/zcode/debug
-tar -xzf "dist/zcode/releases/$zcode_version/zcode-$zcode_version.tar.gz" \
-  -C dist/zcode/debug
-# Start the TUI by default
-node dist/zcode/debug/zcode/bin/zcode.mjs
-
-# Start Web mode
-node dist/zcode/debug/zcode/bin/zcode.mjs --web \
-  --workspace "$PWD" --port 3030 --no-open
-```
-
-Open `http://127.0.0.1:3030` to validate the complete flow, with one backend serving the Web pages and running the Agent. The port must be available; if `pnpm dev:web` is already running, choose another `--port`.
-
-## Repository Structure
-
-| Directory                                            | Responsibility                                                                          |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `packages/desktop`                                   | Electron Main, Host, Renderer, and desktop packaging                                    |
-| `packages/web`                                       | Web client                                                                              |
-| `packages/server`                                    | HTTP / WebSocket services and remote connections                                        |
-| `packages/zcode-server-cli`                          | Standalone server startup and process management                                        |
-| `packages/ui`                                        | Shared React components, hooks, and Zustand state                                       |
-| `packages/services`                                  | Business services and persistence                                                       |
-| `packages/shared`, `packages/rpc`, `packages/client` | Shared protocols and types, RPC framework, and Agent client SDK                         |
-| `packages/provider`, `packages/provider-node`        | Common provider capabilities and Node implementations                                   |
-| `apps/zcode-cli`                                     | Agent CLI, TUI, runtime, and tools                                                      |
-| `scripts`, `config`, `third-party`                   | Build and maintenance scripts, built-in configuration, and third-party notice materials |
-
-## Project Notice
-
-See [NOTICE.md](NOTICE.md) for feature and promotion scope, maintenance policy, execution and data risks, licensing, and third-party copyright information.
+FDCode is forked and adapted from ZCode v3.14.0 under the **Apache License 2.0**. For original copyright notices and third-party dependencies, see [NOTICE.md](NOTICE.md) and [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
