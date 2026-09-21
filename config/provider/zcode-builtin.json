@@ -35,6 +35,63 @@
           }
         },
         {
+          "templateId": "ollama",
+          "templateNameMap": {
+            "zh-CN": "Ollama (Local LLM)",
+            "en-US": "Ollama (Local LLM)"
+          },
+          "config": {
+            "access": {
+              "type": "api-key",
+              "apiKeyManagementUrl": "http://localhost:11434"
+            },
+            "api": {
+              "type": "openai-chat-completions",
+              "baseUrl": "http://localhost:11434/v1"
+            },
+            "builtinModelIds": [
+              "qwen2.5-coder:32b",
+              "qwen2.5-coder:14b",
+              "qwen2.5-coder:7b",
+              "deepseek-r1:32b",
+              "deepseek-r1:14b",
+              "deepseek-r1:8b",
+              "deepseek-coder-v2",
+              "llama3.3"
+            ],
+            "logo": {
+              "type": "builtin",
+              "key": "ollama"
+            }
+          }
+        },
+        {
+          "templateId": "lm-studio",
+          "templateNameMap": {
+            "zh-CN": "LM Studio (Local LLM)",
+            "en-US": "LM Studio (Local LLM)"
+          },
+          "config": {
+            "access": {
+              "type": "api-key",
+              "apiKeyManagementUrl": "http://localhost:1234"
+            },
+            "api": {
+              "type": "openai-chat-completions",
+              "baseUrl": "http://localhost:1234/v1"
+            },
+            "builtinModelIds": [
+              "qwen2.5-coder-32b-instruct",
+              "deepseek-r1-distill-qwen-32b",
+              "local-model"
+            ],
+            "logo": {
+              "type": "builtin",
+              "key": "lmstudio"
+            }
+          }
+        },
+        {
           "templateId": "zai-api",
           "templateNameMap": {
             "zh-CN": "Z.ai Coding Plan",

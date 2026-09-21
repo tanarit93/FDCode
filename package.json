@@ -4,6 +4,10 @@
   "private": true,
   "license": "Apache-2.0",
   "type": "module",
+  "bin": {
+    "fdcode": "./apps/zcode-cli/packages/cli/dist/zcode.cjs",
+    "zcode": "./apps/zcode-cli/packages/cli/dist/zcode.cjs"
+  },
   "scripts": {
     "dev:web": "concurrently -k -n server,web -c blue,green \"pnpm --filter @zcode/server dev\" \"pnpm --filter @zcode/web dev\"",
     "dev:desktop": "pnpm run dev:desktop:prod",

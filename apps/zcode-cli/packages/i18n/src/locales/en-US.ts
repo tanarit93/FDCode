@@ -7,14 +7,16 @@ export const enUS: ZCodeCopy = {
       localeUnsupported: (value) =>
         `Unsupported --locale value: ${value}. Supported locales: en-US, zh-CN, auto.`,
     },
-    help: (version) => `zcode ${version}
+    help: (version) => `fdcode ${version} (alias: zcode)
 
 Usage:
-  zcode [command] [options]
+  fdcode [command] [options]
 
-With no command, zcode opens the full-screen TUI.
+With no command, fdcode opens the full-screen TUI.
 
 Commands:
+  init       Interactive setup wizard for local/remote LLMs (.env / config)
+  config     View or reconfigure provider and API keys
   app-server Run the ZCode Protocol stdio app server
   commands   List custom slash commands (\`commands list\`)
   doctor     Inspect runtime and packaging assumptions
