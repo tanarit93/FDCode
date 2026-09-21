@@ -20,7 +20,12 @@
 - Server workspace path: `ZCODE_SERVER_WORKSPACE` (default current working directory).
 - Built-in provider config: `scripts/builtin-provider-config.mjs`.
 
-## 4. Key Gotchas & Platform Workarounds
+## 4. Agent Persona & Custom Rules Discovery
+- Agent Identity: `FDCode` interactive coding agent (`apps/zcode-cli/packages/core/src/context/sections/cli-prefix.ts` & `identity.ts`).
+- Guiding Principles: Minimal Code First (YAGNI, standard library first), Context Grounding (no guessing), Outcome-First communication, and Clean Code comment density.
+- Rule File Resolution: Automatically loads `FDCODE.md` (priority 1) or `AGENTS.md` (priority 2) in workspace root and user home (`~/.fdcode/FDCODE.md`, `~/.zcode/AGENTS.md`).
+
+## 5. Key Gotchas & Platform Workarounds
 - **Node.js**: Requires Node.js 24.x (v24.18.1 installed) and pnpm 10+.
 - **Windows File Locks**: `bundle-require` unlinking `.mjs` temp files can hit `EBUSY` on Windows due to module loader locks. Handled via error catching.
 - **Native Addons**: `ssh2` and `cpu-features` have pure JS fallbacks if Visual C++ build tools are not installed.

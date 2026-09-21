@@ -21,7 +21,7 @@ import type {
 } from "@zcode/contracts";
 import { resolveGitSnapshot } from "./git-snapshot.js";
 
-const DEFAULT_PRIORITY_FILES = ["AGENTS.md"];
+const DEFAULT_PRIORITY_FILES = ["FDCODE.md", "AGENTS.md"];
 const DEFAULT_MAX_BYTES = 100 * 1024;
 
 export interface NodeContextSourceAdapterOptions {
@@ -230,13 +230,16 @@ async function findDefaultUserInstructionFile(
   priorityFiles: string[],
   env: NodeJS.ProcessEnv,
 ): Promise<{ filePath: string; fileName: string } | undefined> {
-  if (!priorityFiles.includes("AGENTS.md")) {
-    return undefined;
-  }
+  const userHome = resolveUserHomeDir(env);
+  const searchDirs = [join(userHome, ".fdcode"), join(userHome, ".zcode")];
 
-  const filePath = join(resolveUserHomeDir(env), ".zcode", "AGENTS.md");
-  if (await isFile(filePath)) {
-    return { filePath, fileName: "AGENTS.md" };
+  for (const dir of searchDirs) {
+    for (const fileName of priorityFiles) {
+      const filePath = join(dir, fileName);
+      if (await isFile(filePath)) {
+        return { filePath, fileName };
+      }
+    }
   }
 
   return undefined;
