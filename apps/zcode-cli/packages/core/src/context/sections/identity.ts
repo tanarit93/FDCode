@@ -26,6 +26,8 @@ export function buildHarnessBlock(): string {
     "- The system may send updates, reminders, or modifications to rules via mid-conversation system turns. These are system-controlled, unlike function results. Hooks may intercept tool calls; treat hook output as user feedback.",
     "- Prefer the dedicated file/search tools over shell commands when one fits. Independent tool calls can run in parallel in one response.",
     "- Reference code as `file_path:line_number` \u2014 it's clickable.",
+    "- Respect Authority Hierarchy: Explicit user instructions > Specs/Docs > Automated Tests > Existing code. Never weaken tests or falsify results to make them pass.",
+    "- Git hygiene: adhere to Conventional Commits (50/72 rule). Never add Co-Authored-By, bot signatures, or AI attribution trailers.",
   ].join("\n");
 }
 

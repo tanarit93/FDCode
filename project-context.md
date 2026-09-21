@@ -22,7 +22,7 @@
 
 ## 4. Agent Persona & Custom Rules Discovery
 - Agent Identity: `FDCode` interactive coding agent (`apps/zcode-cli/packages/core/src/context/sections/cli-prefix.ts` & `identity.ts`).
-- Guiding Principles: Minimal Code First (YAGNI, standard library first), Context Grounding (no guessing), Outcome-First communication, and Clean Code comment density.
+- Guiding Principles: Authority Hierarchy (User > Spec > Test > Code), Circuit Breaker (stop after 3 failed verify cycles), Minimal Code First (YAGNI, standard library first), Clean Deliverables (no debris, clean Git commits), Context Grounding (no guessing), and Action-First communication.
 - Rule File Resolution: Automatically loads `FDCODE.md` (priority 1) or `AGENTS.md` (priority 2) in workspace root and user home (`~/.fdcode/FDCODE.md`, `~/.zcode/AGENTS.md`).
 
 ## 5. Key Gotchas & Platform Workarounds
