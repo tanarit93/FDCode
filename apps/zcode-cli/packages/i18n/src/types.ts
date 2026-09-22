@@ -13,6 +13,37 @@ export interface CliCopy {
     localeUnsupported(value: string): string;
   };
   help(version: string): string;
+  init: InitCopy;
+}
+
+export interface InitCopy {
+  title: string;
+  selectProvider: string;
+  choicePrompt: string;
+  selected(name: string): string;
+  baseUrlPrompt(defaultValue: string): string;
+  apiKeyPromptWithDefault(defaultValue: string): string;
+  apiKeyPromptOptional: string;
+  suggestedModels(providerId: string): string;
+  recommendedSuffix: string;
+  modelPrompt(defaultValue: string): string;
+  saveWhere: string;
+  saveProjectOption: string;
+  saveGlobalOption(path: string): string;
+  savePrompt: string;
+  saved(path: string): string;
+  gitignoreAdded: string;
+  seedPrecedenceNote: string;
+  testing(url: string): string;
+  connected: string;
+  noModelsEndpoint: string;
+  unreachable: string;
+  done: string;
+  nonInteractive: string;
+  invalidBaseUrl(value: string): string;
+  invalidEnvValue(name: string): string;
+  invalidConfigFile(path: string): string;
+  aborted(message: string): string;
 }
 
 export interface TuiCopy {

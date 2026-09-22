@@ -16,7 +16,7 @@ With no command, fdcode opens the full-screen TUI.
 
 Commands:
   init       Interactive setup wizard for local/remote LLMs (.env / config)
-  config     View or reconfigure provider and API keys
+  config     Alias of init
   app-server Run the ZCode Protocol stdio app server
   commands   List custom slash commands (\`commands list\`)
   doctor     Inspect runtime and packaging assumptions
@@ -70,6 +70,38 @@ Slash Commands:
   /skill [name] [task]  List skills, or force the next prompt to load one
   /goal [action]        Show or set the current session goal
 `,
+    init: {
+      title: "FDCode Setup & Config Wizard",
+      selectProvider: "Select your AI model provider:",
+      choicePrompt: "Enter choice (1-6) [default: 1]: ",
+      selected: (name) => `Selected: ${name}`,
+      baseUrlPrompt: (defaultValue) => `Base URL [${defaultValue}]: `,
+      apiKeyPromptWithDefault: (defaultValue) => `API Key [default: ${defaultValue}]: `,
+      apiKeyPromptOptional: "API Key (leave blank if not needed): ",
+      suggestedModels: (providerId) => `Suggested models for ${providerId}:`,
+      recommendedSuffix: " (recommended)",
+      modelPrompt: (defaultValue) => `Model name [${defaultValue}]: `,
+      saveWhere: "Where would you like to save this configuration?",
+      saveProjectOption: "  [1] Current project (.env file in workspace)",
+      saveGlobalOption: (path) => `  [2] Global user config (${path})`,
+      savePrompt: "Choose (1 or 2) [default: 1]: ",
+      saved: (path) => `Saved configuration to: ${path}`,
+      gitignoreAdded: "Added .env to .gitignore so the API key is not committed.",
+      seedPrecedenceNote:
+        "Note: this configuration is only used while no provider has been created in FDCode itself.",
+      testing: (url) => `Testing connection to ${url}...`,
+      connected: "Connected successfully (server responded).",
+      noModelsEndpoint: "Server did not respond to /models (it may still work during chat).",
+      unreachable: "Could not reach the endpoint right now (make sure the server is running).",
+      done: "Setup complete! Run `fdcode` to start.",
+      nonInteractive: "fdcode init needs an interactive terminal (stdin is not a TTY).",
+      invalidBaseUrl: (value) => `Invalid Base URL: ${value} (must start with http:// or https://).`,
+      invalidEnvValue: (name) =>
+        `${name} must not contain quotes or line breaks when saved to a .env file.`,
+      invalidConfigFile: (path) =>
+        `Existing config file is not valid JSON, refusing to overwrite it: ${path}`,
+      aborted: (message) => `Setup aborted: ${message}`,
+    },
   },
   tui: {
     copy: {

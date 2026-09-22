@@ -20,7 +20,7 @@ export {
   resolveLocale,
 };
 export type { LocaleDetectionInput } from "./locale.js";
-export type { CliCopy, TuiCopy, UiLocale, SupportedLocale, ZCodeCopy } from "./types.js";
+export type { CliCopy, InitCopy, TuiCopy, UiLocale, SupportedLocale, ZCodeCopy } from "./types.js";
 
 const CATALOGS: Record<SupportedLocale, ZCodeCopy> = {
   "en-US": enUS,

@@ -559,7 +559,7 @@ export const run = async (ctx: RunContext, deps: RunDependencies = {}): Promise<
       return await runSkillsCommand(ctx, options, commandDeps, parsed.positionals.slice(1));
     case "init":
     case "config":
-      return await runInitCommand(ctx, commandDeps);
+      return await runInitCommand(ctx, options, commandDeps);
     case "tui":
       return await runTuiCommand(
         ctx,

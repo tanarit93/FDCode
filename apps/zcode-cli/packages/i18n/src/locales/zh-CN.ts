@@ -16,7 +16,7 @@ export const zhCN: ZCodeCopy = {
 
 命令:
   init       交互式引导配置本地/远端大语言模型 (.env / config)
-  config     查看或重新配置 Provider 与 API Key
+  config     init 的别名
   app-server 运行 ZCode Protocol stdio app server
   commands   列出自定义 slash commands（\`commands list\`）
   doctor     检查运行时和打包假设
@@ -70,6 +70,35 @@ Slash Commands:
   /skill [name] [task]  列出 skills，或强制下一次 prompt 加载某个 skill
   /goal [action]        查看或设置当前 session goal
 `,
+    init: {
+      title: "FDCode 安装与配置向导",
+      selectProvider: "选择 AI 模型提供方：",
+      choicePrompt: "输入选项 (1-6) [默认 1]：",
+      selected: (name) => `已选择：${name}`,
+      baseUrlPrompt: (defaultValue) => `Base URL [${defaultValue}]：`,
+      apiKeyPromptWithDefault: (defaultValue) => `API Key [默认 ${defaultValue}]：`,
+      apiKeyPromptOptional: "API Key（不需要可留空）：",
+      suggestedModels: (providerId) => `${providerId} 推荐模型：`,
+      recommendedSuffix: "（推荐）",
+      modelPrompt: (defaultValue) => `模型名称 [${defaultValue}]：`,
+      saveWhere: "配置保存到哪里？",
+      saveProjectOption: "  [1] 当前项目（工作区 .env 文件）",
+      saveGlobalOption: (path) => `  [2] 全局用户配置（${path}）`,
+      savePrompt: "选择 (1 或 2) [默认 1]：",
+      saved: (path) => `配置已保存到：${path}`,
+      gitignoreAdded: "已把 .env 加入 .gitignore，避免 API Key 被提交。",
+      seedPrecedenceNote: "注意：仅当 FDCode 内尚未创建任何 Provider 时，这份配置才会生效。",
+      testing: (url) => `正在测试连接 ${url}...`,
+      connected: "连接成功（服务端有响应）。",
+      noModelsEndpoint: "服务端未响应 /models（聊天时仍可能可用）。",
+      unreachable: "暂时无法连接该地址（请确认服务已启动）。",
+      done: "配置完成！运行 `fdcode` 即可开始。",
+      nonInteractive: "fdcode init 需要交互式终端（stdin 不是 TTY）。",
+      invalidBaseUrl: (value) => `Base URL 无效：${value}（必须以 http:// 或 https:// 开头）。`,
+      invalidEnvValue: (name) => `写入 .env 时，${name} 不能包含引号或换行。`,
+      invalidConfigFile: (path) => `已有配置文件不是合法 JSON，拒绝覆盖：${path}`,
+      aborted: (message) => `配置已中止：${message}`,
+    },
   },
   tui: {
     copy: {

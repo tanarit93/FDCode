@@ -1,235 +1,176 @@
-// ============================================================
-// FDCode Setup & Configuration Wizard
-// Interactive CLI configuration for Local LLMs & BYOK providers
-// ============================================================
-
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import * as readline from "node:readline/promises";
-import { stdin as input, stdout as output } from "node:process";
-import type { RunContext } from "@zcode/shared-types";
+import { getDefaultConfigPath } from "@zcode/adapters/config";
+import { getZCodeCopy, type InitCopy } from "@zcode/i18n";
+import type { GlobalOptions, RunContext } from "@zcode/shared-types";
 import type { RunDependencies } from "./cli-types.js";
+import {
+  ENV_KEY_API_KEY,
+  ENV_KEY_BASE_URL,
+  ENV_KEY_MODEL,
+  InvalidEnvValueError,
+  InvalidExistingConfigError,
+  ensureEnvGitignored,
+  upsertEnvEntries,
+  writeUserProviderConfig,
+} from "./init-config-writers.js";
+import { NO_API_KEY_PLACEHOLDER, PROVIDER_PRESETS, type ProviderPreset } from "./init-presets.js";
 
-interface ProviderPreset {
-  id: string;
-  name: string;
-  defaultBaseUrl: string;
-  defaultApiKey: string;
-  defaultModel: string;
-  suggestedModels: string[];
+const PROBE_TIMEOUT_MS = 3_000;
+const SAVE_TARGET_GLOBAL = "2";
+const ENV_FILE_NAME = ".env";
+const HTTP_UNAUTHORIZED = 401;
+const HTTP_FORBIDDEN = 403;
+
+export interface InitCommandOverrides {
+  /** 用户级配置文件路径，默认取 CLI 的用户配置位置。 */
+  userConfigPath?: string;
 }
 
-const PRESETS: Record<string, ProviderPreset> = {
-  "1": {
-    id: "ollama",
-    name: "Ollama (Local LLM - 100% Private)",
-    defaultBaseUrl: "http://localhost:11434/v1",
-    defaultApiKey: "ollama",
-    defaultModel: "qwen2.5-coder:32b",
-    suggestedModels: [
-      "qwen2.5-coder:32b",
-      "qwen2.5-coder:14b",
-      "deepseek-r1:32b",
-      "deepseek-coder-v2",
-      "llama3.3",
-    ],
-  },
-  "2": {
-    id: "lm-studio",
-    name: "LM Studio (Local LLM - 100% Private)",
-    defaultBaseUrl: "http://localhost:1234/v1",
-    defaultApiKey: "lm-studio",
-    defaultModel: "qwen2.5-coder-32b-instruct",
-    suggestedModels: [
-      "qwen2.5-coder-32b-instruct",
-      "deepseek-r1-distill-qwen-32b",
-      "local-model",
-    ],
-  },
-  "3": {
-    id: "deepseek",
-    name: "DeepSeek API",
-    defaultBaseUrl: "https://api.deepseek.com/v1",
-    defaultApiKey: "",
-    defaultModel: "deepseek-chat",
-    suggestedModels: ["deepseek-chat", "deepseek-reasoner"],
-  },
-  "4": {
-    id: "openai",
-    name: "OpenAI Official API",
-    defaultBaseUrl: "https://api.openai.com/v1",
-    defaultApiKey: "",
-    defaultModel: "gpt-4o",
-    suggestedModels: ["gpt-4o", "gpt-4o-mini", "o3-mini"],
-  },
-  "5": {
-    id: "openrouter",
-    name: "OpenRouter",
-    defaultBaseUrl: "https://openrouter.ai/api/v1",
-    defaultApiKey: "",
-    defaultModel: "anthropic/claude-3.5-sonnet",
-    suggestedModels: [
-      "anthropic/claude-3.5-sonnet",
-      "openai/gpt-4o",
-      "deepseek/deepseek-r1",
-    ],
-  },
-  "6": {
-    id: "custom",
-    name: "Custom OpenAI-Compatible Endpoint",
-    defaultBaseUrl: "http://localhost:8000/v1",
-    defaultApiKey: "",
-    defaultModel: "default-model",
-    suggestedModels: [],
-  },
-};
+class InvalidBaseUrlError extends Error {
+  readonly value: string;
 
+  constructor(value: string) {
+    super(`Invalid base URL: ${value}`);
+    this.name = "InvalidBaseUrlError";
+    this.value = value;
+  }
+}
+
+type ProbeResult = "connected" | "no-models-endpoint" | "unreachable";
+
+/** 规格见 docs/specs/fdcode-init-wizard.md。 */
 export async function runInitCommand(
   ctx: RunContext,
+  options: GlobalOptions,
   deps: RunDependencies,
+  overrides: InitCommandOverrides = {},
 ): Promise<number> {
-  const rl = readline.createInterface({ input, output });
+  const copy = getZCodeCopy(options.locale, options.detectedLocale).cli.init;
 
+  if (!ctx.stdin.isTTY) {
+    ctx.stderr.write(`${copy.nonInteractive}\n`);
+    return 1;
+  }
+
+  const rl = readline.createInterface({ input: ctx.stdin, output: ctx.stdout });
   try {
-    ctx.stdout.write("\n╔════════════════════════════════════════════════════╗\n");
-    ctx.stdout.write("║            FDCode Setup & Config Wizard            ║\n");
-    ctx.stdout.write("╚════════════════════════════════════════════════════╝\n\n");
+    ctx.stdout.write(`\n== ${copy.title} ==\n\n${copy.selectProvider}\n`);
+    PROVIDER_PRESETS.forEach((preset, index) => {
+      ctx.stdout.write(`  [${index + 1}] ${preset.name}\n`);
+    });
 
-    ctx.stdout.write("Select your AI model provider:\n");
-    for (const [key, preset] of Object.entries(PRESETS)) {
-      ctx.stdout.write(`  [${key}] ${preset.name}\n`);
-    }
+    const preset = await askPreset(rl, copy);
+    ctx.stdout.write(`\n${copy.selected(preset.name)}\n`);
 
-    const choiceRaw = (await rl.question("\nEnter choice (1-6) [default: 1]: ")).trim();
-    const choice = choiceRaw || "1";
-    const selectedPreset = PRESETS[choice] || PRESETS["1"]!;
+    const baseUrl = parseBaseUrl(
+      (await rl.question(copy.baseUrlPrompt(preset.defaultBaseUrl))).trim() ||
+        preset.defaultBaseUrl,
+    );
+    const apiKeyPrompt = preset.defaultApiKey
+      ? copy.apiKeyPromptWithDefault(preset.defaultApiKey)
+      : copy.apiKeyPromptOptional;
+    const apiKey =
+      (await rl.question(apiKeyPrompt)).trim() || preset.defaultApiKey || NO_API_KEY_PLACEHOLDER;
 
-    ctx.stdout.write(`\nSelected: ${selectedPreset.name}\n`);
-
-    // 1. Base URL
-    const baseUrlAnswer = (
-      await rl.question(`Base URL [${selectedPreset.defaultBaseUrl}]: `)
-    ).trim();
-    const baseUrl = baseUrlAnswer || selectedPreset.defaultBaseUrl;
-
-    // 2. API Key
-    const apiKeyPrompt = selectedPreset.defaultApiKey
-      ? `API Key [default: ${selectedPreset.defaultApiKey}]: `
-      : "API Key (leave blank if not needed): ";
-    const apiKeyAnswer = (await rl.question(apiKeyPrompt)).trim();
-    const apiKey = apiKeyAnswer || selectedPreset.defaultApiKey;
-
-    // 3. Model
-    if (selectedPreset.suggestedModels.length > 0) {
-      ctx.stdout.write(`\nSuggested models for ${selectedPreset.id}:\n`);
-      selectedPreset.suggestedModels.forEach((m, idx) => {
-        ctx.stdout.write(`  - ${m}${idx === 0 ? " (recommended)" : ""}\n`);
+    if (preset.suggestedModels.length > 0) {
+      ctx.stdout.write(`\n${copy.suggestedModels(preset.id)}\n`);
+      preset.suggestedModels.forEach((model, index) => {
+        ctx.stdout.write(`  - ${model}${index === 0 ? copy.recommendedSuffix : ""}\n`);
       });
     }
-    const modelAnswer = (
-      await rl.question(`Model name [${selectedPreset.defaultModel}]: `)
-    ).trim();
-    const model = modelAnswer || selectedPreset.defaultModel;
+    const model =
+      (await rl.question(copy.modelPrompt(preset.defaultModel))).trim() || preset.defaultModel;
 
-    // 4. Save Location
-    ctx.stdout.write("\nWhere would you like to save this configuration?\n");
-    ctx.stdout.write("  [1] Current Project (.env file in workspace)\n");
-    ctx.stdout.write("  [2] Global User Config (~/.fdcode/cli/config.json)\n");
-    const saveChoiceRaw = (await rl.question("Choose (1 or 2) [default: 1]: ")).trim();
-    const saveChoice = saveChoiceRaw || "1";
+    const userConfigPath = overrides.userConfigPath ?? getDefaultConfigPath();
+    ctx.stdout.write(`\n${copy.saveWhere}\n${copy.saveProjectOption}\n`);
+    ctx.stdout.write(`${copy.saveGlobalOption(userConfigPath)}\n`);
+    const saveTarget = (await rl.question(copy.savePrompt)).trim();
 
-    const workingDirectory = (deps.cwd ?? process.cwd)();
-
-    if (saveChoice === "2") {
-      // Save globally
-      const globalDir = join(homedir(), ".fdcode", "cli");
-      mkdirSync(globalDir, { recursive: true });
-      const configFilePath = join(globalDir, "config.json");
-
-      let currentConfig: Record<string, unknown> = {};
-      if (existsSync(configFilePath)) {
-        try {
-          currentConfig = JSON.parse(readFileSync(configFilePath, "utf8"));
-        } catch {
-          currentConfig = {};
-        }
-      }
-
-      currentConfig.provider = {
-        kind: "openai-compatible",
-        name: selectedPreset.name,
-        options: {
-          baseURL: baseUrl,
-          apiKey: apiKey || "none",
-        },
-        models: {
-          [model]: {
-            id: model,
-            name: model,
-          },
-        },
-      };
-      currentConfig.model = {
-        main: {
-          provider: "openai-compatible",
-          model,
-        },
-      };
-
-      writeFileSync(configFilePath, `${JSON.stringify(currentConfig, null, 2)}\n`, "utf8");
-      ctx.stdout.write(`\nSaved configuration to: ${configFilePath}\n`);
+    if (saveTarget === SAVE_TARGET_GLOBAL) {
+      await writeUserProviderConfig(userConfigPath, {
+        providerId: preset.id,
+        name: preset.name,
+        baseUrl,
+        apiKey,
+        model,
+      });
+      ctx.stdout.write(`\n${copy.saved(userConfigPath)}\n`);
     } else {
-      // Save to project .env
-      const envFilePath = join(workingDirectory, ".env");
-      const envLines = [
-        "",
-        "# FDCode Model Configuration",
-        `OPENAI_BASE_URL="${baseUrl}"`,
-        `OPENAI_API_KEY="${apiKey || "none"}"`,
-        `OPENAI_MODEL="${model}"`,
-      ].join("\n");
-
-      appendFileSync(envFilePath, `${envLines}\n`, "utf8");
-      ctx.stdout.write(`\nSaved configuration to: ${envFilePath}\n`);
-    }
-
-    // 5. Connectivity Verification Ping
-    ctx.stdout.write(`\nTesting connection to ${baseUrl}... `);
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-      const testUrl = baseUrl.endsWith("/v1")
-        ? `${baseUrl}/models`
-        : baseUrl.endsWith("/")
-          ? `${baseUrl}models`
-          : `${baseUrl}/models`;
-
-      const response = await fetch(testUrl, {
-        method: "GET",
-        headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : {},
-        signal: controller.signal,
-      }).catch(() => null);
-      clearTimeout(timeoutId);
-
-      if (response && (response.ok || response.status === 401 || response.status === 403)) {
-        ctx.stdout.write("Connected successfully! (Server responded)\n");
-      } else {
-        ctx.stdout.write("Notice: Server did not respond to /models (it may still work during chat).\n");
+      const projectDir = (deps.cwd ?? process.cwd)();
+      const envFilePath = join(projectDir, ENV_FILE_NAME);
+      await upsertEnvEntries(envFilePath, {
+        [ENV_KEY_BASE_URL]: baseUrl,
+        [ENV_KEY_API_KEY]: apiKey,
+        [ENV_KEY_MODEL]: model,
+      });
+      ctx.stdout.write(`\n${copy.saved(envFilePath)}\n`);
+      if (await ensureEnvGitignored(projectDir)) {
+        ctx.stdout.write(`${copy.gitignoreAdded}\n`);
       }
-    } catch {
-      ctx.stdout.write("Notice: Could not reach endpoint right now (ensure server is running).\n");
     }
+    ctx.stdout.write(`${copy.seedPrecedenceNote}\n`);
 
-    ctx.stdout.write("\nSetup complete! You can now run:\n");
-    ctx.stdout.write("  fdcode\n\n");
+    ctx.stdout.write(`\n${copy.testing(baseUrl)} `);
+    ctx.stdout.write(`${probeMessage(copy, await probeModelsEndpoint(baseUrl, apiKey))}\n`);
 
+    ctx.stdout.write(`\n${copy.done}\n\n`);
     return 0;
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    ctx.stderr.write(`\nSetup aborted: ${message}\n`);
+    ctx.stderr.write(`\n${copy.aborted(describeWizardError(copy, error))}\n`);
     return 1;
   } finally {
     rl.close();
   }
+}
+
+async function askPreset(rl: readline.Interface, copy: InitCopy): Promise<ProviderPreset> {
+  const answer = (await rl.question(`\n${copy.choicePrompt}`)).trim();
+  const index = Number.parseInt(answer, 10) - 1;
+  return PROVIDER_PRESETS[index] ?? PROVIDER_PRESETS[0]!;
+}
+
+function parseBaseUrl(value: string): string {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new InvalidBaseUrlError(value);
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") throw new InvalidBaseUrlError(value);
+  return value;
+}
+
+/** 探测只用于提示，任何失败都归一成状态，不影响已保存的配置。 */
+async function probeModelsEndpoint(baseUrl: string, apiKey: string): Promise<ProbeResult> {
+  const modelsUrl = new URL("models", baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`);
+  try {
+    const response = await fetch(modelsUrl, {
+      headers: apiKey === NO_API_KEY_PLACEHOLDER ? {} : { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+    });
+    const reachable =
+      response.ok || response.status === HTTP_UNAUTHORIZED || response.status === HTTP_FORBIDDEN;
+    return reachable ? "connected" : "no-models-endpoint";
+  } catch {
+    return "unreachable";
+  }
+}
+
+function probeMessage(copy: InitCopy, result: ProbeResult): string {
+  switch (result) {
+    case "connected":
+      return copy.connected;
+    case "no-models-endpoint":
+      return copy.noModelsEndpoint;
+    case "unreachable":
+      return copy.unreachable;
+  }
+}
+
+function describeWizardError(copy: InitCopy, error: unknown): string {
+  if (error instanceof InvalidBaseUrlError) return copy.invalidBaseUrl(error.value);
+  if (error instanceof InvalidEnvValueError) return copy.invalidEnvValue(error.envName);
+  if (error instanceof InvalidExistingConfigError) return copy.invalidConfigFile(error.path);
+  return error instanceof Error ? error.message : String(error);
 }
