@@ -17,7 +17,6 @@ import type { ServiceLogger } from "../logger/serviceLogger.js";
  */
 
 export const WORKSPACE_FILE_SEARCH_IGNORE_FILE_NAME = ".fdcodeignore";
-export const LEGACY_WORKSPACE_FILE_SEARCH_IGNORE_FILE_NAME = ".zcodeignore";
 const GITIGNORE_FILE_NAME = ".gitignore";
 
 type WorkspaceFileIgnoreLogger = Pick<ServiceLogger, "info" | "warn">;
@@ -323,9 +322,6 @@ export async function loadWorkspaceFileSearchIgnoreRules(
   let existing: string | null;
   try {
     existing = await readOptionalFile(ignorePath);
-    if (existing === null) {
-      existing = await readOptionalFile(resolve(rootPath, LEGACY_WORKSPACE_FILE_SEARCH_IGNORE_FILE_NAME));
-    }
   } catch (error) {
     return degradeToInMemory(`读取 ${WORKSPACE_FILE_SEARCH_IGNORE_FILE_NAME} 失败`, error);
   }
@@ -385,10 +381,7 @@ export async function readWorkspaceFileSearchIgnore(
   rootPath: string,
 ): Promise<WorkspaceFileSearchIgnoreContent> {
   const ignorePath = resolve(rootPath, WORKSPACE_FILE_SEARCH_IGNORE_FILE_NAME);
-  let existing = await readOptionalFile(ignorePath);
-  if (existing === null) {
-    existing = await readOptionalFile(resolve(rootPath, LEGACY_WORKSPACE_FILE_SEARCH_IGNORE_FILE_NAME));
-  }
+  const existing = await readOptionalFile(ignorePath);
   if (existing !== null) {
     return { content: existing, source: "file" };
   }

@@ -45,7 +45,8 @@ export const ZCODE_BUILD_COMMIT_ID_ENV = "ZCODE_BUILD_COMMIT_ID" as const;
 export const RUNTIME_ZCODE_DEBUG =
   typeof process !== "undefined" ? process.env.ZCODE_DEBUG : undefined;
 
-// FDCode: Telemetry is disabled by default for privacy and local BYOK usage.
+// FDCode 隐私默认：硬关闭遥测，即使运行时配置了下面的端点也不出网。
+// 上游为 true（只有配置了端点才上报）；要给自有后端启用时，改回 true 并设置端点环境变量。
 export const ZCODE_TELEMETRY_ENABLED: boolean = false;
 
 /** 数仓事件上报端点：由运行时环境变量提供，未配置即停用，构建产物不内嵌。 */
