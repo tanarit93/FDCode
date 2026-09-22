@@ -1,11 +1,13 @@
 # FDCode Project Context & Architectural Map
 
 ## 1. Overview & Transformation Goal
+
 - **Project Name**: FDCode (Forked & adapted from ZCode v3.14.0)
 - **Goal**: Rebrand and adapt into an independent, local-first AI Coding Workspace with BYOK (Bring-Your-Own-Key) support for OpenAI-compatible APIs across Desktop, Web, and Terminal CLI.
 - **License**: Apache 2.0 (with attribution preserved in NOTICE.md)
 
 ## 2. Monorepo Architecture Map
+
 - `packages/desktop`: Electron app (Main, Preload, Renderer, Host, Schedulers).
 - `packages/web`: React 18 + Vite Web Client for browser-based / remote sessions.
 - `packages/server`: HTTP & WebSocket server (port 3030 default) and `stdio` IPC adapter for Desktop.
@@ -16,24 +18,29 @@
 - `apps/zcode-cli`: Agent runtime harness (`zcode` CLI / TUI), tool execution, dynamic workflows.
 
 ## 3. Storage & Configuration Cheat Sheet
+
 - Local data base dir: controlled by `ZCODE_DATA_BASE_DIR` (or future `FDCODE_DATA_BASE_DIR`), defaults to `~/.zcode` (or `~/.fdcode`).
 - Server workspace path: `ZCODE_SERVER_WORKSPACE` (default current working directory).
 - Built-in provider config: `scripts/builtin-provider-config.mjs`.
 
 ## 4. Agent Persona & Custom Rules Discovery
+
 - Agent Identity: `FDCode` interactive coding agent (`apps/zcode-cli/packages/core/src/context/sections/cli-prefix.ts` & `identity.ts`).
 - Guiding Principles: Authority Hierarchy (User > Spec > Test > Code), Circuit Breaker (stop after 3 failed verify cycles), Minimal Code First (YAGNI, standard library first), Clean Deliverables (no debris, clean Git commits), Context Grounding (no guessing), and Action-First communication.
 - Rule File Resolution: Automatically loads `FDCODE.md` (priority 1) or `AGENTS.md` (priority 2) in workspace root and user home (`~/.fdcode/FDCODE.md`, `~/.zcode/AGENTS.md`).
 
 ## 5. Key Gotchas & Platform Workarounds
+
 - **Node.js**: Requires Node.js 24.x (v24.18.1 installed) and pnpm 10+.
 - **Windows File Locks**: `bundle-require` unlinking `.mjs` temp files can hit `EBUSY` on Windows due to module loader locks. Handled via error catching.
 - **Native Addons**: `ssh2` and `cpu-features` have pure JS fallbacks if Visual C++ build tools are not installed.
 
 ## 6. Recent Enhancements & Documentation
-- **RTK Built-in**: Integrated transparent Bash tool interceptor and AST rewriter (`rtk-rewriter.ts`).
-- **Local LLM Presets**: Added Ollama and LM Studio presets in `config/provider/zcode-builtin.json`.
-- **Interactive Wizard**: `fdcode init` and `fdcode config` in `apps/zcode-cli/packages/cli/src/init-command.ts`.
-- **Context Filtering**: `.fdcodeignore` with automatic `.zcodeignore` fallback in `workspaceFileIgnore.ts`.
-- **Documentation**: New Thai `README.md` and English `README.en.md` with complete architecture maps, quickstart commands, and badge metadata.
 
+- **RTK Bash rewrite**: `rtk-rewriter.ts` calls `rtk hook check` before each Bash command. Switch: `ZCODE_DISABLE_RTK=1`, resolved in Bootstrap into `AgentRuntimeConfig.bashRtkPolicy`. Spec: `apps/zcode-cli/docs/specs/rtk-bash-rewrite.md`.
+- **Local LLM Presets**: Ollama and LM Studio presets in `config/provider/zcode-builtin.json`.
+- **Init wizard**: `fdcode init` / `fdcode config` (`cli/src/init-command.ts`, `init-config-writers.ts`, `init-presets.ts`). Spec: `apps/zcode-cli/docs/specs/fdcode-init-wizard.md`.
+- **Provider source precedence**: Personal Provider file > legacy CLI config (`~/.zcode/cli/config.json`, provider map + `model.main` as `"provider/model"` string) > `OPENAI_*` env seed (`bootstrap/src/app/env-provider-config-seed.ts`).
+- **Context Filtering**: workspace search ignore file is `.fdcodeignore` (no `.zcodeignore` fallback).
+- **Tests**: node:test files in `core/test`, `cli/test`, `bootstrap/test`, `packages/ui/test`. Run with `node_modules/.bin/tsx --test <file>` (UI helper test needs `TSX_TSCONFIG_PATH=packages/ui/tsconfig.json`).
+- **Documentation**: Thai `README.md` and English `README.en.md`.

@@ -22,8 +22,8 @@
 ```
 ███████╗██████╗   ██████╗ ██████╗ ██████╗ ███████╗
 ██╔════╝██╔══██╗ ██╔════╝██╔═══██╗██╔══██╗██╔════╝
-█████╗  ██║  ██║ ██║     ██║   ██║██║  ██║█████╗  
-██╔══╝  ██║  ██║ ██║     ██║   ██║██║  ██║██╔══╝  
+█████╗  ██║  ██║ ██║     ██║   ██║██║  ██║█████╗
+██╔══╝  ██║  ██║ ██║     ██║   ██║██║  ██║██╔══╝
 ██║     ██████╔╝ ╚██████╗╚██████╔╝██████╔╝███████╗
 ╚═╝     ╚═════╝   ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝
 ```
@@ -55,11 +55,13 @@
 ## เริ่มต้นใช้งานด่วน
 
 ### ความต้องการของระบบ
+
 - **Node.js**: `24.x` (อิงตาม [mise.toml](mise.toml))
 - **pnpm**: `10.x`
 - **Git**
 
 ### 1. ติดตั้งและบิลด์โปรเจกต์
+
 ```bash
 # ติดตั้ง dependencies และคอมไพล์ dependencies เริ่มต้น
 pnpm install
@@ -67,12 +69,14 @@ pnpm bootstrap
 ```
 
 ### 2. รัน Setup Wizard เพื่อผูกโมเดล AI
+
 ```bash
 # รันตัวช่วยตั้งค่าแบบ Interactive (Ollama, LM Studio, DeepSeek, OpenAI, etc.)
 node apps/zcode-cli/packages/cli/dist/zcode.cjs init
 ```
 
 ### 3. เริ่มใช้งานทันที
+
 ```bash
 # เปิดใช้งาน Terminal TUI
 node apps/zcode-cli/packages/cli/dist/zcode.cjs
@@ -87,11 +91,11 @@ pnpm dev:desktop
 
 ## รูปแบบการรัน (3 Interfaces)
 
-| Interface | คำสั่งเรียกใช้ | คำอธิบาย |
-| :--- | :--- | :--- |
-| **Terminal TUI / CLI** | `fdcode` หรือ `pnpm --filter @zcode/cli dev` | ทำงานใน Terminal โดยตรง น้ำหนักเบา เร็ว และประหยัดทรัพยากร |
-| **Desktop App** | `pnpm dev:desktop` | Electron Application เต็มรูปแบบ รองรับ Workspace และระบบ Multi-tab |
-| **Web / Remote Client** | `pnpm dev:web` | เปิด Web Client บนเบราว์เซอร์ (`http://localhost:5173`) สำหรับรันบนเซิร์ฟเวอร์หรือเครื่องระยะไกล |
+| Interface               | คำสั่งเรียกใช้                               | คำอธิบาย                                                                                         |
+| :---------------------- | :------------------------------------------- | :----------------------------------------------------------------------------------------------- |
+| **Terminal TUI / CLI**  | `fdcode` หรือ `pnpm --filter @zcode/cli dev` | ทำงานใน Terminal โดยตรง น้ำหนักเบา เร็ว และประหยัดทรัพยากร                                       |
+| **Desktop App**         | `pnpm dev:desktop`                           | Electron Application เต็มรูปแบบ รองรับ Workspace และระบบ Multi-tab                               |
+| **Web / Remote Client** | `pnpm dev:web`                               | เปิด Web Client บนเบราว์เซอร์ (`http://localhost:5173`) สำหรับรันบนเซิร์ฟเวอร์หรือเครื่องระยะไกล |
 
 ---
 
@@ -100,11 +104,14 @@ pnpm dev:desktop
 FDCode รองรับทั้ง Local LLM และ Remote API ผ่านมาตรฐาน OpenAI-Compatible:
 
 ### 1. ใช้งาน Local LLMs (แนะนำ)
+
 - **Ollama**: รัน `ollama run qwen2.5-coder:32b` หรือ `deepseek-r1:14b` จากนั้นเลือก Ollama ใน `fdcode init` (Base URL: `http://localhost:11434/v1`)
 - **LM Studio**: โหลดโมเดลใน LM Studio แล้วกด Start Local Server จากนั้นเลือก LM Studio ใน `fdcode init` (Base URL: `http://localhost:1234/v1`)
 
 ### 2. ใช้งาน Remote API (BYOK)
+
 รองรับ DeepSeek, OpenAI, OpenRouter หรือ Custom Endpoint โดยคีย์จะถูกเก็บไว้อย่างปลอดภัยใน:
+
 - **Project-level**: ไฟล์ `.env` ใน Root ของแต่ละโปรเจกต์
 - **Global-level**: `~/.fdcode/cli/config.json` สำหรับใช้ทุกโปรเจกต์ร่วมกัน
 
@@ -113,6 +120,7 @@ FDCode รองรับทั้ง Local LLM และ Remote API ผ่า�
 ## การคุมบริบทด้วย .fdcodeignore
 
 FDCode ใช้ไฟล์ `.fdcodeignore` เพื่อระบุไฟล์ที่ไม่ต้องการให้ Agent ดึงเข้า Context (เช่น บันทึกการเทส, ไฟล์ชั่วคราว, build output)
+
 - ใช้ไวยากรณ์เดียวกับ `.gitignore`
 - มีระบบ Backward-compatible อัตโนมัติ: หากโปรเจกต์มีไฟล์ `.zcodeignore` เดิม ระบบจะโหลดให้อัตโนมัติโดยไม่ต้องเปลี่ยนชื่อไฟล์
 

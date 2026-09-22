@@ -22,8 +22,8 @@
 ```
 ███████╗██████╗   ██████╗ ██████╗ ██████╗ ███████╗
 ██╔════╝██╔══██╗ ██╔════╝██╔═══██╗██╔══██╗██╔════╝
-█████╗  ██║  ██║ ██║     ██║   ██║██║  ██║█████╗  
-██╔══╝  ██║  ██║ ██║     ██║   ██║██║  ██║██╔══╝  
+█████╗  ██║  ██║ ██║     ██║   ██║██║  ██║█████╗
+██╔══╝  ██║  ██║ ██║     ██║   ██║██║  ██║██╔══╝
 ██║     ██████╔╝ ╚██████╗╚██████╔╝██████╔╝███████╗
 ╚═╝     ╚═════╝   ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝
 ```
@@ -55,23 +55,27 @@
 ## Quick Start
 
 ### Prerequisites
+
 - **Node.js**: `24.x` (see [mise.toml](mise.toml))
 - **pnpm**: `10.x`
 - **Git**
 
 ### 1. Install Dependencies & Bootstrap
+
 ```bash
 pnpm install
 pnpm bootstrap
 ```
 
 ### 2. Run Interactive Setup Wizard
+
 ```bash
 # Configure Ollama, LM Studio, DeepSeek, OpenAI, or Custom endpoints
 node apps/zcode-cli/packages/cli/dist/zcode.cjs init
 ```
 
 ### 3. Launch FDCode
+
 ```bash
 # Launch Terminal TUI
 node apps/zcode-cli/packages/cli/dist/zcode.cjs
@@ -86,11 +90,11 @@ pnpm dev:desktop
 
 ## Execution Surfaces (3 Interfaces)
 
-| Interface | Command | Description |
-| :--- | :--- | :--- |
-| **Terminal TUI / CLI** | `fdcode` or `pnpm --filter @zcode/cli dev` | Fast, lightweight full-screen TUI directly in your shell |
-| **Desktop App** | `pnpm dev:desktop` | Full Electron application with multi-tab workspace management |
-| **Web / Remote Client** | `pnpm dev:web` | Browser-based client (`http://localhost:5173`) for headless and remote VPS servers |
+| Interface               | Command                                    | Description                                                                        |
+| :---------------------- | :----------------------------------------- | :--------------------------------------------------------------------------------- |
+| **Terminal TUI / CLI**  | `fdcode` or `pnpm --filter @zcode/cli dev` | Fast, lightweight full-screen TUI directly in your shell                           |
+| **Desktop App**         | `pnpm dev:desktop`                         | Full Electron application with multi-tab workspace management                      |
+| **Web / Remote Client** | `pnpm dev:web`                             | Browser-based client (`http://localhost:5173`) for headless and remote VPS servers |
 
 ---
 
@@ -99,11 +103,14 @@ pnpm dev:desktop
 FDCode supports local LLMs and remote APIs adhering to the OpenAI-Compatible format:
 
 ### 1. Local LLMs (Recommended)
+
 - **Ollama**: Start your local model (e.g. `ollama run qwen2.5-coder:32b` or `deepseek-r1:14b`), then select Ollama in `fdcode init` (Base URL: `http://localhost:11434/v1`).
 - **LM Studio**: Load your model, start the local server, and select LM Studio in `fdcode init` (Base URL: `http://localhost:1234/v1`).
 
 ### 2. Remote APIs (BYOK)
+
 Bring your own API key for DeepSeek, OpenAI, OpenRouter, or private gateways. Credentials are securely stored at:
+
 - **Project level**: `.env` in the current project root.
 - **Global level**: `~/.fdcode/cli/config.json` across all workspaces.
 
@@ -112,6 +119,7 @@ Bring your own API key for DeepSeek, OpenAI, OpenRouter, or private gateways. Cr
 ## Context Filtering with .fdcodeignore
 
 FDCode inspects `.fdcodeignore` to exclude files from agent context (e.g. test artifacts, build caches, scratch logs):
+
 - Standard `.gitignore` syntax.
 - **Zero-migration fallback**: Automatically falls back to `.zcodeignore` if present in legacy workspaces.
 
