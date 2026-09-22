@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { BUILTIN_PROVIDER_TEMPLATE_IDS } from "@zcode/shared";
 import { getDefaultConfigPath } from "@zcode/adapters/config";
+import { readEnvProviderConfigSeed } from "./env-provider-config-seed.js";
 import {
   parseLegacyCliModelConfig,
   type LegacyCliModelConfigProjection,
@@ -135,44 +136,7 @@ export async function readLegacyCliPersonalProviderConfig(input: {
     const raw = JSON.parse(await readFile(filePath, "utf8")) as unknown;
     return importLegacyCliPersonalProviderConfig({ input: raw });
   } catch (error) {
-    if (isFileNotFound(error)) {
-      const env = input.env ?? process.env;
-      const apiKey = (env.OPENAI_API_KEY ?? env.FDCODE_API_KEY)?.trim();
-      if (apiKey) {
-        const baseUrl =
-          (env.OPENAI_BASE_URL ?? env.FDCODE_BASE_URL)?.trim() || "https://api.openai.com/v1";
-        const modelId = (env.OPENAI_MODEL ?? env.FDCODE_MODEL)?.trim() || "gpt-4o";
-        const providerId = "openai-compatible";
-        const templateId = "openai-compatible";
-
-        let providers = ProviderConfigMap.empty();
-        providers = providers.setRule({
-          providerId,
-          templateId,
-          providerName: "OpenAI Compatible (BYOK)",
-          config: new ProviderConfig({
-            group: "standard-personal",
-            access: new ApiKeyAccessConfig({ apiKey }),
-            api: new ProviderApiConfig({
-              type: "openai-chat-completions",
-              baseUrl,
-            }),
-            personalModelIds: [modelId],
-            modelOrder: [modelId],
-          }),
-        });
-
-        return Object.freeze({
-          providers,
-          models: ModelConfigRules.empty(),
-          defaultModelSelection: Object.freeze({
-            providerId,
-            modelId,
-          }),
-        });
-      }
-      return null;
-    }
+    if (isFileNotFound(error)) return readEnvProviderConfigSeed(input.env ?? process.env);
     // 迁移必须是全有或全无。正式 Config 尚不能表达旧执行字段时保留旧链路，
     // 不写一个部分 Personal 文件阻止未来版本重新迁移。
     if (error instanceof UnsupportedLegacyCliProviderConfigError) return null;
