@@ -32,6 +32,11 @@ import { renderOAuthProviderIcon } from "@/lib/oauthProviderIcon.js";
 import {
   buildLoginApiKeyDefaultModelPreferenceFromSelection,
   buildLoginApiKeySkipSettings,
+  OPENAI_COMPATIBLE_DEFAULT_BASE_URL,
+  OPENAI_COMPATIBLE_DEFAULT_MODEL,
+  buildLoginApiKeyInitialConfig,
+  isHttpUrl,
+  isLoginApiKeyRequired,
   resolveLoginApiKeyDefaultProvider,
   resolveLoginApiKeyTemplateId,
   resolveLoginApiKeyProviderLabel,
@@ -47,16 +52,16 @@ interface LoginApiKeyFormProps {
 }
 
 export function LoginApiKeyForm({ onCancel, onSaved, onSkipped }: LoginApiKeyFormProps) {
-  const { intl, locale } = useZCodeIntl();
+  const { intl } = useZCodeIntl();
   const platform = usePlatform();
   const { modelSelectionService, providerSettingsService, settingService } = useServices();
   const markApiKeyLoginSuccess = useZCodeStore((state) => state.markApiKeyLoginSuccess);
-  const [providerChoice, setProviderChoice] = useState<ApiKeyProviderChoice>(() =>
-    resolveLoginApiKeyDefaultProvider(locale),
+  const [providerChoice, setProviderChoice] = useState<ApiKeyProviderChoice>(
+    resolveLoginApiKeyDefaultProvider,
   );
   const [apiKeyValue, setApiKeyValue] = useState("");
-  const [baseUrlValue, setBaseUrlValue] = useState("https://api.openai.com/v1");
-  const [modelValue, setModelValue] = useState("gpt-4o");
+  const [baseUrlValue, setBaseUrlValue] = useState(OPENAI_COMPATIBLE_DEFAULT_BASE_URL);
+  const [modelValue, setModelValue] = useState(OPENAI_COMPATIBLE_DEFAULT_MODEL);
   const [saving, setSaving] = useState(false);
   const [skipping, setSkipping] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,8 +80,13 @@ export function LoginApiKeyForm({ onCancel, onSaved, onSkipped }: LoginApiKeyFor
 
   const saveApiKeyProvider = async () => {
     const apiKey = apiKeyValue.trim();
-    if (!apiKey && providerChoice !== "openai-compatible") {
+    if (!apiKey && isLoginApiKeyRequired(providerChoice)) {
       setError(intl.formatMessage({ id: "login.apiKey.emptyError" }));
+      return;
+    }
+    const baseUrl = baseUrlValue.trim();
+    if (providerChoice === "openai-compatible" && baseUrl && !isHttpUrl(baseUrl)) {
+      setError(intl.formatMessage({ id: "login.apiKey.invalidBaseUrl" }));
       return;
     }
 
@@ -96,23 +106,17 @@ export function LoginApiKeyForm({ onCancel, onSaved, onSkipped }: LoginApiKeyFor
         return;
       }
 
-      const initialConfig: Record<string, unknown> = {
-        access: { type: template.config.access.type, apiKey: apiKey || undefined },
-      };
-      if (providerChoice === "openai-compatible") {
-        const baseUrl = baseUrlValue.trim() || "https://api.openai.com/v1";
-        const model = modelValue.trim() || "gpt-4o";
-        initialConfig.api = {
-          type: "openai-chat-completions",
-          baseUrl,
-        };
-        initialConfig.personalModelIds = [model];
-        initialConfig.modelOrder = [model];
-      }
+      const initialConfig = buildLoginApiKeyInitialConfig({
+        choice: providerChoice,
+        accessType: template.config.access.type,
+        apiKey,
+        baseUrl,
+        model: modelValue.trim(),
+      });
 
       const created = await providerSettingsService.createPersonalProvider({
         templateId,
-        providerName: providerChoice === "openai-compatible" ? "OpenAI Compatible" : undefined,
+        providerName: providerChoice === "openai-compatible" ? providerLabel : undefined,
         initialConfig,
       });
       const defaultModelPreference = buildLoginApiKeyDefaultModelPreferenceFromSelection(
@@ -166,6 +170,8 @@ export function LoginApiKeyForm({ onCancel, onSaved, onSkipped }: LoginApiKeyFor
   };
 
   const busy = saving || skipping;
+  const canSubmit =
+    !busy && (Boolean(apiKeyValue.trim()) || !isLoginApiKeyRequired(providerChoice));
 
   return (
     <div className="space-y-4">
@@ -223,8 +229,11 @@ export function LoginApiKeyForm({ onCancel, onSaved, onSkipped }: LoginApiKeyFor
 
           {providerChoice === "openai-compatible" && (
             <div className="space-y-1">
-              <label className="text-xs font-medium text-foreground-subtle" htmlFor="login-base-url">
-                Base URL
+              <label
+                className="text-xs font-medium text-foreground-subtle"
+                htmlFor="login-base-url"
+              >
+                {intl.formatMessage({ id: "login.apiKey.baseUrlLabel" })}
               </label>
               <Input
                 id="login-base-url"
@@ -232,7 +241,7 @@ export function LoginApiKeyForm({ onCancel, onSaved, onSkipped }: LoginApiKeyFor
                 size="lg"
                 className="h-10 w-full text-ui-base"
                 value={baseUrlValue}
-                placeholder="https://api.openai.com/v1"
+                placeholder={OPENAI_COMPATIBLE_DEFAULT_BASE_URL}
                 autoComplete="off"
                 disabled={busy}
                 onChange={(event) => setBaseUrlValue(event.target.value)}
@@ -243,7 +252,7 @@ export function LoginApiKeyForm({ onCancel, onSaved, onSkipped }: LoginApiKeyFor
           <div className="space-y-1">
             {providerChoice === "openai-compatible" && (
               <label className="text-xs font-medium text-foreground-subtle" htmlFor="login-api-key">
-                API Key
+                {intl.formatMessage({ id: "login.apiKey.label" })}
               </label>
             )}
             <div className="relative">
@@ -257,20 +266,18 @@ export function LoginApiKeyForm({ onCancel, onSaved, onSkipped }: LoginApiKeyFor
                   id: "login.apiKey.placeholder",
                 })}
                 value={apiKeyValue}
-                placeholder={
-                  providerChoice === "openai-compatible"
-                    ? "sk-... (or leave empty for local LLM)"
-                    : intl.formatMessage({
-                        id: "login.apiKey.placeholder",
-                      })
-                }
+                placeholder={intl.formatMessage({
+                  id: isLoginApiKeyRequired(providerChoice)
+                    ? "login.apiKey.placeholder"
+                    : "login.apiKey.placeholderOptional",
+                })}
                 autoComplete="off"
                 onChange={(event) => {
                   setApiKeyValue(event.target.value);
                   setError(null);
                 }}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" && !busy) {
+                  if (event.key === "Enter" && canSubmit) {
                     void saveApiKeyProvider();
                   }
                 }}
@@ -294,8 +301,11 @@ export function LoginApiKeyForm({ onCancel, onSaved, onSkipped }: LoginApiKeyFor
 
           {providerChoice === "openai-compatible" && (
             <div className="space-y-1">
-              <label className="text-xs font-medium text-foreground-subtle" htmlFor="login-model-name">
-                Default Model
+              <label
+                className="text-xs font-medium text-foreground-subtle"
+                htmlFor="login-model-name"
+              >
+                {intl.formatMessage({ id: "login.apiKey.modelLabel" })}
               </label>
               <Input
                 id="login-model-name"
@@ -303,7 +313,7 @@ export function LoginApiKeyForm({ onCancel, onSaved, onSkipped }: LoginApiKeyFor
                 size="lg"
                 className="h-10 w-full text-ui-base"
                 value={modelValue}
-                placeholder="gpt-4o"
+                placeholder={OPENAI_COMPATIBLE_DEFAULT_MODEL}
                 autoComplete="off"
                 disabled={busy}
                 onChange={(event) => setModelValue(event.target.value)}
@@ -326,7 +336,7 @@ export function LoginApiKeyForm({ onCancel, onSaved, onSkipped }: LoginApiKeyFor
           className="h-10 w-full text-ui-base"
           size="lg"
           data-testid={TID_LOGIN_API_KEY_CONTINUE_BUTTON}
-          disabled={!apiKeyValue.trim() || busy}
+          disabled={!canSubmit}
           onClick={() => void saveApiKeyProvider()}
         >
           {saving ? <Loader2Icon className="size-4 animate-spin" /> : null}
