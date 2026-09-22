@@ -23,6 +23,7 @@ import { writeToolEntry } from "./write.js";
 import { editToolEntry } from "./edit.js";
 import { bashToolEntry, createBashToolEntry } from "./bash.js";
 import type { BashTimeoutPolicy } from "../bash-timeout-policy.js";
+import type { BashRtkPolicy } from "./rtk-rewriter.js";
 import { createJsToolEntry, jsToolEntry } from "./node-repl.js";
 import { globToolEntry } from "./glob.js";
 import { grepToolEntry } from "./grep.js";
@@ -158,6 +159,7 @@ const DYNAMIC_WORKFLOW_TOOL_NAMES: ReadonlySet<string> = new Set([
 
 interface RegisterBuiltInToolsOptions {
   bashTimeoutPolicy?: BashTimeoutPolicy;
+  bashRtkPolicy?: BashRtkPolicy;
   includeSkill?: boolean;
   includeAgent?: boolean;
   includeSendMessage?: boolean;
@@ -275,6 +277,7 @@ function resolveBuiltInToolEntryForBranch(
   if (entry.metadata.name === "Bash") {
     return createBashToolEntry({
       bashTimeoutPolicy: options.bashTimeoutPolicy,
+      bashRtkPolicy: options.bashRtkPolicy,
       embeddedSearchEnabled: options.embeddedSearchEnabled,
     });
   }

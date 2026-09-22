@@ -1,119 +1,79 @@
-// ============================================================
-// RTK Command Rewriter
-// Transparently optimizes terminal commands to cut LLM tokens
-// ============================================================
+// RTK（Rust Token Killer）命令改写。规格见 docs/specs/rtk-bash-rewrite.md。
 
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
+const RTK_BINARY = "rtk";
 const RTK_EXEC_TIMEOUT_MS = 1_000;
+const RTK_ALREADY_WRAPPED_PATTERN = /^rtk(?:\.exe)?(?:\s|$)/;
+const RTK_DISABLE_ENV_KEY = "ZCODE_DISABLE_RTK";
+const ENV_TRUTHY_VALUES = new Set(["1", "true"]);
 
-interface RtkState {
-  available: boolean | undefined;
-  binaryPath: string;
+export interface BashRtkPolicy {
+  enabled: boolean;
 }
 
-const rtkState: RtkState = {
-  available: undefined,
-  binaryPath: process.env.RTK_PATH || "rtk",
+export const DEFAULT_BASH_RTK_POLICY: BashRtkPolicy = { enabled: true };
+
+export function resolveBashRtkPolicy(
+  env: Readonly<Record<string, string | undefined>>,
+): BashRtkPolicy {
+  const disabled = ENV_TRUTHY_VALUES.has(env[RTK_DISABLE_ENV_KEY]?.trim().toLowerCase() ?? "");
+  return { enabled: !disabled };
+}
+
+export type RtkRunner = (args: readonly string[]) => Promise<{ stdout: string }>;
+
+export interface RtkRewriter {
+  rewrite(command: string, policy: BashRtkPolicy): Promise<string>;
+}
+
+const execRtk: RtkRunner = async (args) => {
+  const { stdout } = await execFileAsync(RTK_BINARY, [...args], {
+    timeout: RTK_EXEC_TIMEOUT_MS,
+    windowsHide: true,
+  });
+  return { stdout };
 };
 
 /**
- * Reset cached RTK availability (primarily for unit tests).
+ * 可用性探测结果在 rewriter 生命周期内缓存（含并发调用共享同一次探测）。
+ * 探测失败、`rtk hook check` 无改写（退出码非 0）、超时都退回原命令：
+ * 改写只是优化，不能让 Bash 工具因此失败。
  */
-export function resetRtkState(): void {
-  rtkState.available = undefined;
-  rtkState.binaryPath = process.env.RTK_PATH || "rtk";
-}
+export function createRtkRewriter(run: RtkRunner): RtkRewriter {
+  let availability: Promise<boolean> | undefined;
 
-/**
- * Check if RTK auto-rewriting is disabled via environment variable.
- */
-export function isRtkDisabledByEnv(): boolean {
-  return (
-    process.env.FDCODE_DISABLE_RTK === "1" ||
-    process.env.FDCODE_DISABLE_RTK === "true" ||
-    process.env.RTK_DISABLE === "1" ||
-    process.env.RTK_DISABLE === "true"
-  );
-}
-
-/**
- * Check if the RTK binary is installed and executable.
- * Caches the result after the initial check.
- */
-export async function isRtkAvailable(): Promise<boolean> {
-  if (isRtkDisabledByEnv()) {
-    return false;
-  }
-
-  if (rtkState.available !== undefined) {
-    return rtkState.available;
-  }
-
-  try {
-    const { stdout } = await execFileAsync(rtkState.binaryPath, ["--version"], {
-      timeout: RTK_EXEC_TIMEOUT_MS,
-      windowsHide: true,
-    });
-    rtkState.available = typeof stdout === "string" && stdout.toLowerCase().includes("rtk");
-  } catch {
-    rtkState.available = false;
-  }
-
-  return rtkState.available;
-}
-
-/**
- * Inspects a bash command and rewrites it to its RTK token-optimized equivalent
- * if supported. Returns the original command if RTK is unavailable, disabled,
- * or if the command has no RTK equivalent.
- */
-export async function rewriteBashCommandWithRtk(command: string): Promise<string> {
-  const trimmed = command.trim();
-  if (!trimmed) {
-    return command;
-  }
-
-  // Skip if already invoking RTK directly
-  if (
-    trimmed.startsWith("rtk ") ||
-    trimmed.startsWith("rtk.exe ") ||
-    trimmed === "rtk" ||
-    trimmed === "rtk.exe"
-  ) {
-    return command;
-  }
-
-  if (isRtkDisabledByEnv()) {
-    return command;
-  }
-
-  const available = await isRtkAvailable();
-  if (!available) {
-    return command;
-  }
-
-  try {
-    const { stdout } = await execFileAsync(
-      rtkState.binaryPath,
-      ["hook", "check", trimmed],
-      {
-        timeout: RTK_EXEC_TIMEOUT_MS,
-        windowsHide: true,
-      },
+  const isAvailable = (): Promise<boolean> => {
+    availability ??= run(["--version"]).then(
+      ({ stdout }) => stdout.toLowerCase().includes(RTK_BINARY),
+      () => false,
     );
+    return availability;
+  };
 
-    const rewritten = stdout?.trim();
-    if (rewritten && rewritten.length > 0) {
-      return rewritten;
-    }
-  } catch {
-    // If RTK hook check fails (exit code 1 on no rewrite, timeout, or syntax error),
-    // safely fallback to the original command.
-  }
+  return {
+    async rewrite(command, policy) {
+      const trimmed = command.trim();
+      if (!policy.enabled || trimmed === "" || RTK_ALREADY_WRAPPED_PATTERN.test(trimmed)) {
+        return command;
+      }
+      if (!(await isAvailable())) return command;
 
-  return command;
+      try {
+        const { stdout } = await run(["hook", "check", trimmed]);
+        return stdout.trim() || command;
+      } catch {
+        return command;
+      }
+    },
+  };
+}
+
+const defaultRewriter = createRtkRewriter(execRtk);
+
+export function rewriteBashCommandWithRtk(command: string, policy: BashRtkPolicy): Promise<string> {
+  return defaultRewriter.rewrite(command, policy);
 }

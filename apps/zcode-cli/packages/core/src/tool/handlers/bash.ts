@@ -54,7 +54,11 @@ import {
 import { createBashProviderDescription } from "./bash-prompt.js";
 import { applyBashReadFileStateEffects } from "./bash-read-file-state.js";
 import { isRuntimeReadOnlyBashCommand } from "./bash-semantics.js";
-import { rewriteBashCommandWithRtk } from "./rtk-rewriter.js";
+import {
+  DEFAULT_BASH_RTK_POLICY,
+  rewriteBashCommandWithRtk,
+  type BashRtkPolicy,
+} from "./rtk-rewriter.js";
 import {
   attachToolExecutionTelemetry,
   classifyCommand,
@@ -96,16 +100,20 @@ function resolveBashPermissionCapability(
 }
 
 const bashHandler: ToolHandler = (input, context) =>
-  executeBashHandler(input, context, DEFAULT_BASH_TIMEOUT_POLICY);
+  executeBashHandler(input, context, DEFAULT_BASH_TIMEOUT_POLICY, DEFAULT_BASH_RTK_POLICY);
 
-function createBashHandler(timeoutPolicy: BashTimeoutPolicy): ToolHandler {
-  return (input, context) => executeBashHandler(input, context, timeoutPolicy);
+function createBashHandler(
+  timeoutPolicy: BashTimeoutPolicy,
+  rtkPolicy: BashRtkPolicy,
+): ToolHandler {
+  return (input, context) => executeBashHandler(input, context, timeoutPolicy, rtkPolicy);
 }
 
 async function executeBashHandler(
   input: unknown,
   context: ToolExecutionContext,
   timeoutPolicy: BashTimeoutPolicy,
+  rtkPolicy: BashRtkPolicy,
 ): Promise<BashOutput> {
   const parsed = BashInputSchema.parse(input) as BashInput;
   const executionPort = context.executionPort;
@@ -130,7 +138,7 @@ async function executeBashHandler(
     return emptyBashOutput(parsed);
   }
 
-  const effectiveCommand = await rewriteBashCommandWithRtk(parsed.command);
+  const effectiveCommand = await rewriteBashCommandWithRtk(parsed.command, rtkPolicy);
   const effectiveParsed: BashInput =
     effectiveCommand !== parsed.command
       ? { ...parsed, command: effectiveCommand }
@@ -519,13 +527,14 @@ export const bashToolEntry: ToolEntry = {
 export function createBashToolEntry(
   options: {
     bashTimeoutPolicy?: BashTimeoutPolicy;
+    bashRtkPolicy?: BashRtkPolicy;
     embeddedSearchEnabled?: boolean;
   } = {},
 ): ToolEntry {
   const timeoutPolicy = options.bashTimeoutPolicy ?? DEFAULT_BASH_TIMEOUT_POLICY;
   return {
     ...bashToolEntry,
-    handler: createBashHandler(timeoutPolicy),
+    handler: createBashHandler(timeoutPolicy, options.bashRtkPolicy ?? DEFAULT_BASH_RTK_POLICY),
     inputSchema: createBashInputJsonSchema(timeoutPolicy),
     resolveTimeoutBudgetMs: createBashTimeoutBudgetResolver(timeoutPolicy),
     metadata: {

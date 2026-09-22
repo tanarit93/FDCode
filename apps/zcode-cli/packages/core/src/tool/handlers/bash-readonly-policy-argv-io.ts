@@ -1,5 +1,12 @@
 import type { BashCommandInvocation } from "./bash-command-parser.js";
 
+export const RTK_INSPECTION_SUBCOMMANDS: ReadonlySet<string> = new Set([
+  "gain",
+  "discover",
+  "cc-economics",
+  "session",
+]);
+
 const SAFE_ENV_ASSIGNMENTS = new Set([
   "ANTHROPIC_API_KEY",
   "BLOCK_SIZE",
@@ -100,15 +107,12 @@ export function stripSafeCommandWrappers(argv: readonly string[]): readonly stri
         stripped = stripped.slice(2);
         continue;
       }
-      // Keep RTK-native inspection subcommands and flags for direct readonly policy evaluation
+      // RTK 自带的查看类子命令与 flag 交给 direct 策略判定；其余 `rtk <cmd>` 按 `<cmd>` 判定。
       const subcommand = stripped[1];
       if (
         !subcommand ||
         subcommand.startsWith("-") ||
-        subcommand === "gain" ||
-        subcommand === "discover" ||
-        subcommand === "cc-economics" ||
-        subcommand === "session"
+        RTK_INSPECTION_SUBCOMMANDS.has(subcommand)
       ) {
         return stripped;
       }

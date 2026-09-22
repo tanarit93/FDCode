@@ -1,5 +1,6 @@
 import { READONLY_ALLOW_ANY_ARG_COMMAND_PREFIXES } from "./bash-readonly-policy-commands.js";
 import { hasDangerousDockerOption } from "./bash-readonly-policy-callbacks.js";
+import { RTK_INSPECTION_SUBCOMMANDS } from "./bash-readonly-policy-argv-io.js";
 
 const FIND_WRITE_OPTIONS = new Set([
   "-delete",
@@ -82,23 +83,16 @@ export function evaluateDirectReadonlyArgv(argv: readonly string[]): boolean | u
   return undefined;
 }
 
-const RTK_SAFE_SUBCOMMANDS = new Set([
-  "gain",
-  "discover",
-  "cc-economics",
-  "session",
-]);
+const RTK_INFO_FLAGS = new Set(["-v", "-V", "--version", "-h", "--help"]);
+// `rtk gain --reset` 会清空本地统计，不属于只读。
+const RTK_MUTATING_FLAGS = new Set(["--reset"]);
 
 function isSafeRtkArgv(argv: readonly string[]): boolean {
-  if (argv.length < 2) return true;
   const subcommand = argv[1];
   if (!subcommand) return true;
-  if (subcommand === "-v" || subcommand === "-V" || subcommand === "--version") return true;
-  if (subcommand === "-h" || subcommand === "--help") return true;
-  if (RTK_SAFE_SUBCOMMANDS.has(subcommand)) {
-    return !argv.some((arg) => arg.includes(";") || arg.includes("|") || arg.includes("&"));
-  }
-  return false;
+  if (RTK_INFO_FLAGS.has(subcommand)) return true;
+  if (!RTK_INSPECTION_SUBCOMMANDS.has(subcommand)) return false;
+  return !argv.some((arg) => RTK_MUTATING_FLAGS.has(arg));
 }
 
 const READONLY_EXACT_ARGV_COMMANDS = [

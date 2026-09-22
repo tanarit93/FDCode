@@ -28,7 +28,7 @@ export function buildHarnessBlock(): string {
     "- Reference code as `file_path:line_number` \u2014 it's clickable.",
     "- Respect Authority Hierarchy: Explicit user instructions > Specs/Docs > Automated Tests > Existing code. Never weaken tests or falsify results to make them pass.",
     "- Git hygiene: adhere to Conventional Commits (50/72 rule). Never add Co-Authored-By, bot signatures, or AI attribution trailers.",
-    "- Terminal optimization: Bash commands are transparently token-optimized via RTK (Rust Token Killer) to reduce context overhead. You can inspect savings with `rtk gain` or bypass filtering with `rtk proxy <cmd>`. Avoid piping to `head` or `tail`.",
+    "- Terminal optimization: if the `rtk` binary (Rust Token Killer) is installed, Bash commands may be transparently rewritten to `rtk <cmd>` to shrink output. When a command was rewritten, you can see savings with `rtk gain` or get raw output with `rtk proxy <cmd>`, and piping to `head`/`tail` bypasses the rewrite. If `rtk` is not installed, commands run unchanged.",
   ].join("\n");
 }
 

@@ -108,6 +108,7 @@ import type {
 import type { AgentProfile } from "../subagent/profile.js";
 import type { RuntimeTaskRegistry } from "../runtime-task/registry.js";
 import type { BashTimeoutPolicy } from "../tool/bash-timeout-policy.js";
+import type { BashRtkPolicy } from "../tool/handlers/rtk-rewriter.js";
 import type { PresentationSurface } from "../context/types.js";
 import type { WorkspaceHookRuntimeAdmissionPort } from "../hooks/workspace-hook-runtime-admission.js";
 
@@ -121,6 +122,7 @@ export interface AgentRuntimeConfig {
   deliveryKind?: "desktop-continuous" | "web-remote-replayable";
   remoteSessionId?: string;
   bashTimeoutPolicy?: BashTimeoutPolicy;
+  bashRtkPolicy?: BashRtkPolicy;
   presentationSurface?: PresentationSurface;
   mode?: CollaborationMode;
   planEnabled?: boolean;
